@@ -1,0 +1,39 @@
+# Go dependencies (local GOPATH)
+.go/
+
+# Build outputs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+screenshooter-mcp
+screenshooter-mcp.AppImage
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*~
