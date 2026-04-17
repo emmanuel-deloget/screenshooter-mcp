@@ -1,14 +1,16 @@
 # Go dependencies (local GOPATH)
 .go/
 
+# Bundled binaries
+bin/
+
 # Build outputs
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-screenshooter-mcp
-screenshooter-mcp.AppImage
+screenshooter-mcp*
 
 # Test binary, built with `go test -c`
 *.test
