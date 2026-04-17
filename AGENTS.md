@@ -35,14 +35,9 @@ When performing git operations, the following rules **MUST** be followed:
 │                  MCP Server (Go)                     │
 │  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐  │
 │  │   tools/    │  │   vision/   │  │   capture/    │  │
-│  │  screenshot │──│  ollama.go  │──│   platform/   │  │
-│  │  find_elem  │  │   client    │  │  (X11/Wayland)│  │
+│  │ capture_*  │──│  ollama.go  │──│   x11/        │  │
+│  │ find_*     │  │  manager    │  │   wayland/    │  │
 │  └─────────────┘  └─────────────┘  └───────────────┘  │
-└─────────────────────┬───────────────────────────────┘
-                      │ HTTP
-┌─────────────────────▼───────────────────────────────┐
-│              Ollama (embedded in AppImage)           │
-│    Local VLM (moondream2, llava-llama3, etc.)      │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -50,21 +45,55 @@ When performing git operations, the following rules **MUST** be followed:
 
 | Directory | Purpose |
 |-----------|---------|
-| `cmd/server/` | Main entrypoint, MCP transport setup |
+| `cmd/server/` | Main entrypoint |
 | `internal/tools/` | MCP tool implementations |
-| `internal/vision/` | Ollama API client, prompt templates |
-| `internal/capture/` | Platform-specific screen capture |
-| `internal/capture/x11/` | X11 capture via xlib or xcb |
-| `internal/capture/wayland/` | Wayland capture via xdg-desktop-portal |
-| `assets/models/` | Bundled model manifests |
+| `internal/vision/` | Ollama API client, manager |
+| `internal/capture/` | Common types, interfaces |
+| `internal/capture/x11/` | X11 capture implementation |
+| `internal/capture/wayland/` | Wayland capture implementation |
 
 ## Build & Test
 
 ```bash
-go build ./cmd/server          # Build
-go test ./...                  # Test all packages
-go build -tags=x11 ./cmd/server   # Build with X11 support
-go build -tags=wayland ./cmd/server # Build with Wayland support
+eval "$(direnv export bash)" && go build ./cmd/server    # Build
+eval "$(direnv export bash)" && go test ./...             # Test all
+```
+
+## CLI Options
+
+```bash
+screenshot-mcp-server [options]
+  -v, --version           Show version
+  -h, --help              Show help
+  -m, --vision-model      Vision model name (default: moondream2)
+  --list-vision-models    List available vision models
+  -q, --vision-quality    Vision quality: low|middle|high (default: middle)
+  -l, --log-level         Log level: debug|info|warn|error (default: info)
+  --color                 Color output: always|never|auto (default: auto)
+```
+
+## MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_monitors` | List available monitors with names and aliases |
+| `capture_screen` | Capture full screen(s) - returns PNG image |
+| `capture_window` | Capture specific window by ID - returns PNG image |
+| `capture_region` | Capture region from virtual screen - returns PNG image |
+| `find_element` | Vision-based element location - returns `{bbox, description, confidence}` |
+| `capture_element` | Find element + crop - returns cropped PNG image |
+
+## Monitor Naming
+
+Monitors are named using human-readable names with aliases:
+
+```json
+{
+  "name": "1920x1080-left",
+  "aliases": ["DP-1", "monitor-1", "1"],
+  "x": 0, "y": 0,
+  "width": 1920, "height": 1080
+}
 ```
 
 ## Go Development Environment
@@ -75,50 +104,47 @@ go build -tags=wayland ./cmd/server # Build with Wayland support
   - Modules cached in `./.go/pkg/mod`
   - Binaries installed to `./.go/bin`
 
-## MCP Tools
-
-- `take_screenshot` - Capture full screen or specific window (params: `display?`, `window_id?`)
-- `find_element` - Locate UI element in screenshot (params: `image`, `description`) → returns bounding box `[x1,y1,x2,y2]`
-- `click_at` - (future) Simulate click at coordinates
-
-## Ollama Integration
-
-- Embedded Ollama binary inside AppImage
-- Default endpoint: `http://127.0.0.1:11434`
-- Model configured via `OLLAMA_MODEL` env var (default: `moondream2`)
-- Prompt template outputs bounding box coordinates
-
 ## Environment Auto-Detection
 
 On startup, detect X11 vs Wayland:
 1. Check `XDG_SESSION_TYPE` env var
 2. Fallback: check for X11 socket (`DISPLAY` set) vs Wayland socket (`WAYLAND_DISPLAY` set)
-3. If capture API unavailable, log warning with missing package instructions and exit gracefully
+3. Exit with error if no desktop environment detected
 
-### Required Packages (auto-detected warnings)
+## Ollama Integration
 
-| Environment | Required | Package (Debian/Ubuntu) |
-|-------------|----------|-------------------------|
-| X11 | libx11-dev, libxcb1-dev | `apt install libx11-dev libxcb1-dev` |
-| Wayland | libwayland-dev, xdg-desktop-portal | `apt install libwayland-dev` |
-| Both | Ollama running | `curl http://127.0.0.1:11434` |
+- Ollama spawned on server startup with random port on `127.0.0.0/8`
+- PID tracked for cleanup on shutdown
+- Vision quality affects image encoding (low=jpeg50%, middle/high=png)
 
 ## Vision Model
 
 - **CPU-only**: Designed to run efficiently without GPU
 - **Recommended**: `moondream2` (~1.4B params, fast on CPU)
-- **Alternatives**: `llava-llama3`, `qwen2-vl`
-- **Storage**: `~/.local/share/screenshooter-mcp/models/` (primary) or `~/.ollama/models/` (fallback)
-- **First-run**: Auto-download model if not cached; skip if already present
+- **Alternatives**: `llava`, `qwen2-vl`
 
 ## Distribution
 
-- **AppImage**: Bundles Go MCP server + Ollama binary (~100-200MB)
-- **First-run**: Check for cached model; download if missing (one-time ~2-4GB)
-- **Model cache**: `~/.local/share/screenshooter-mcp/models/` persists across updates
+- **AppImage**: Bundles Go MCP server + Ollama binary
+- **First-run**: Check for cached model; download if missing
 
-## Security Notes
+## Dependencies
 
-- Screen capture requires elevated access to display server
-- MCP server validates all tool arguments
-- Ollama runs locally (no data leaves the machine)
+| Package | Purpose |
+|---------|---------|
+| `github.com/jessevdk/go-flags` | CLI argument parsing |
+| `github.com/modelcontextprotocol/go-sdk` | MCP protocol (planned) |
+| `github.com/rs/zerolog` | Structured logging (planned) |
+
+## Testing
+
+- Standard Go `testing` package
+- Unit tests in `*_test.go` files
+- Run tests: `go test ./...`
+
+## CI/CD
+
+GitHub Actions workflow in `.github/workflows/ci.yml`:
+- Build and test on push/PR
+- Go vet linting
+- Security vulnerability scanning with govulncheck
