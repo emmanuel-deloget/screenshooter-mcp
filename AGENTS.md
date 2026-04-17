@@ -67,6 +67,14 @@ go build -tags=x11 ./cmd/server   # Build with X11 support
 go build -tags=wayland ./cmd/server # Build with Wayland support
 ```
 
+## Go Development Environment
+
+- **Module**: `github.com/emmanuel-deloget/screenshooter-mcp`
+- **Vendoring**: Not used
+- **Local GOPATH**: Managed via `.envrc` with direnv
+  - Modules cached in `./.go/pkg/mod`
+  - Binaries installed to `./.go/bin`
+
 ## MCP Tools
 
 - `take_screenshot` - Capture full screen or specific window (params: `display?`, `window_id?`)
