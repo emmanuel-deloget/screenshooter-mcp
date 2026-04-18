@@ -1,10 +1,12 @@
 package vision
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"image"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -33,14 +35,16 @@ var qualityToModel = map[VisionQuality]string{
 }
 
 type Manager struct {
-	modelPath string
-	model     string
-	quality   VisionQuality
-	port      int
-	pid       int
-	url       string
-	client    *http.Client
-	cmd       *exec.Cmd
+	modelPath     string
+	model         string
+	quality       VisionQuality
+	port          int
+	pid           int
+	url           string
+	client        *http.Client
+	cmd           *exec.Cmd
+	modelCacheDir string
+	debug         bool
 }
 
 type ManagerOption func(*Manager)
@@ -60,6 +64,18 @@ func WithModel(model string) ManagerOption {
 func WithQuality(quality VisionQuality) ManagerOption {
 	return func(m *Manager) {
 		m.quality = quality
+	}
+}
+
+func WithModelCacheDir(dir string) ManagerOption {
+	return func(m *Manager) {
+		m.modelCacheDir = dir
+	}
+}
+
+func WithDebug(debug bool) ManagerOption {
+	return func(m *Manager) {
+		m.debug = debug
 	}
 }
 
@@ -104,19 +120,32 @@ func (m *Manager) startOllama() error {
 	}
 	logging.Debug().Str("path", ollamaPath).Msg("Ollama binary found")
 
-	args := []string{"serve", "--host", "127.0.0.1", "--port", fmt.Sprintf("%d", m.port)}
-	if m.modelPath != "" {
-		args = append(args, "--model-path", m.modelPath)
-	}
-
-	m.cmd = exec.Command(ollamaPath, args...)
-	m.cmd.Stdout = nil
-	m.cmd.Stderr = nil
+	m.cmd = exec.Command(ollamaPath, "serve")
 
 	ollamaDir := filepath.Dir(ollamaPath)
-	m.cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+filepath.Join(ollamaDir, "lib"))
+	env := append(os.Environ(),
+		"LD_LIBRARY_PATH="+filepath.Join(ollamaDir, "lib"),
+		"OLLAMA_HOST=127.0.0.1:"+fmt.Sprintf("%d", m.port),
+		"OLLAMA_NO_CLOUD=1",
+		"OLLAMA_LLM_LIBRARY=cpu",
+	)
 
-	logging.Debug().Strs("args", args).Str("ld_path", filepath.Join(ollamaDir, "lib")).Msg("Starting Ollama process")
+	if m.modelCacheDir != "" {
+		env = append(env, "OLLAMA_MODELS="+m.modelCacheDir)
+		logging.Debug().Str("model_cache", m.modelCacheDir).Msg("Using custom model cache directory")
+	}
+
+	m.cmd.Env = env
+
+	if m.debug {
+		m.cmd.Stdout = &ollamaWriter{prefix: "OLLAMA stdout: "}
+		m.cmd.Stderr = &ollamaWriter{prefix: "OLLAMA stderr: "}
+	} else {
+		m.cmd.Stdout = nil
+		m.cmd.Stderr = nil
+	}
+
+	logging.Debug().Str("ld_path", filepath.Join(ollamaDir, "lib")).Str("host", "127.0.0.1").Int("port", m.port).Bool("debug", m.debug).Msg("Starting Ollama process")
 	if err := m.cmd.Start(); err != nil {
 		logging.Error().Err(err).Msg("Failed to start Ollama process")
 		return fmt.Errorf("failed to start ollama: %w", err)
@@ -154,6 +183,21 @@ func (m *Manager) startOllama() error {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
+}
+
+type ollamaWriter struct {
+	prefix string
+}
+
+func (w *ollamaWriter) Write(p []byte) (n int, err error) {
+	scanner := bufio.NewScanner(strings.NewReader(string(p)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line != "" {
+			logging.Debug().Str("source", w.prefix).Msg(line)
+		}
+	}
+	return len(p), nil
 }
 
 func findOllamaBinary() (string, error) {
@@ -317,3 +361,5 @@ func getQualityDescription(q VisionQuality) string {
 		return "Use balanced detail for processing."
 	}
 }
+
+var _ io.Writer = (*ollamaWriter)(nil)

@@ -27,6 +27,7 @@ type Options struct {
 	VisionQuality    vision.VisionQuality `short:"q" long:"vision-quality" description:"Vision quality" default:"middle"`
 	LogLevel         string               `short:"l" long:"log-level" description:"Log level" default:"info"`
 	Color            string               `long:"color" description:"Color output: always|never|auto" default:"auto"`
+	ModelCacheDir    string               `long:"model-cache-dir" description:"Directory for model cache"`
 }
 
 func main() {
@@ -101,10 +102,17 @@ func run(opts *Options) error {
 	}
 
 	logging.Info().Str("model", opts.VisionModel).Str("quality", string(opts.VisionQuality)).Msg("Starting Ollama vision manager")
-	visionMgr, err := vision.NewManager(
+
+	visionOpts := []vision.ManagerOption{
 		vision.WithModel(opts.VisionModel),
 		vision.WithQuality(opts.VisionQuality),
-	)
+		vision.WithDebug(opts.LogLevel == "debug"),
+	}
+	if opts.ModelCacheDir != "" {
+		visionOpts = append(visionOpts, vision.WithModelCacheDir(opts.ModelCacheDir))
+	}
+
+	visionMgr, err := vision.NewManager(visionOpts...)
 	if err != nil {
 		logging.Error().Err(err).Msg("Failed to start vision manager")
 		return fmt.Errorf("failed to start vision manager: %w", err)
