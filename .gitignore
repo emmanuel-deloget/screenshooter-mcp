@@ -10,7 +10,8 @@ bin/
 *.dll
 *.so
 *.dylib
-screenshooter-mcp*
+/screenshooter-mcp-server
+screenshooter-mcp-server.exe
 
 # Test binary, built with `go test -c`
 *.test
