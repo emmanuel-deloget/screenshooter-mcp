@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/capture"
@@ -28,6 +29,7 @@ type Options struct {
 	LogLevel         string               `short:"l" long:"log-level" description:"Log level" default:"info"`
 	Color            string               `long:"color" description:"Color output: always|never|auto" default:"auto"`
 	ModelCacheDir    string               `long:"model-cache-dir" description:"Directory for model cache"`
+	Listen           string               `long:"listen" description:"Listen on TCP address (e.g. 127.0.0.1:8080). Requires external MCP-to-HTTP bridge"`
 }
 
 func main() {
@@ -79,6 +81,11 @@ func listVisionModels() {
 }
 
 func run(opts *Options) error {
+	if opts.Listen != "" && opts.Listen != "stdio" {
+		logging.Warn().Str("listen", opts.Listen).Msg("Listen mode: requires external MCP<->HTTP bridge")
+		return runHttpBridge(opts)
+	}
+
 	logging.Info().Msg("Starting screenshooter-mcp server")
 
 	detector := capture.NewEnvironmentDetector()
@@ -132,6 +139,56 @@ func run(opts *Options) error {
 
 	logging.Info().Msg("MCP server running on stdio")
 	return server.Run(context.Background(), &mcp.StdioTransport{})
+}
+
+func runHttpBridge(opts *Options) error {
+	logging.Info().Str("listen", opts.Listen).Msg("Starting HTTP server")
+
+	detector := capture.NewEnvironmentDetector()
+	env, err := detector.Detect()
+	if err != nil {
+		return fmt.Errorf("failed to detect environment: %w", err)
+	}
+
+	var capt capture.ScreenCapture
+	switch env {
+	case capture.EnvironmentX11:
+		capt = x11.NewX11Capture()
+	case capture.EnvironmentWayland:
+		capt = wayland.NewWaylandCapture()
+	default:
+		return fmt.Errorf("unsupported environment: %s", env)
+	}
+
+	visionOpts := []vision.ManagerOption{
+		vision.WithModel(opts.VisionModel),
+		vision.WithQuality(opts.VisionQuality),
+		vision.WithDebug(opts.LogLevel == "debug"),
+	}
+	if opts.ModelCacheDir != "" {
+		visionOpts = append(visionOpts, vision.WithModelCacheDir(opts.ModelCacheDir))
+	}
+
+	visionMgr, err := vision.NewManager(visionOpts...)
+	if err != nil {
+		return fmt.Errorf("failed to start vision manager: %w", err)
+	}
+	defer visionMgr.Stop()
+
+	server := mcp.NewServer(&mcp.Implementation{
+		Name:    "screenshooter-mcp",
+		Version: "0.1.0",
+	}, nil)
+
+	serverTools := tools.NewTools(capt, visionMgr)
+	registerTools(server, serverTools)
+
+	handler := mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {
+		return server
+	}, nil)
+
+	logging.Info().Str("listen", opts.Listen).Msg("HTTP server listening")
+	return http.ListenAndServe(opts.Listen, handler)
 }
 
 type listMonitorsInput struct{}
