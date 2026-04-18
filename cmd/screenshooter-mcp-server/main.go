@@ -101,10 +101,18 @@ func run(opts *Options) error {
 	switch env {
 	case capture.EnvironmentX11:
 		logging.Debug().Msg("Creating X11 capture")
-		capt = x11.NewX11Capture()
+		capt, err = x11.NewX11Capture()
+		if err != nil {
+			logging.Error().Err(err).Msg("Failed to create X11 capture")
+			return fmt.Errorf("failed to create X11 capture: %w", err)
+		}
 	case capture.EnvironmentWayland:
 		logging.Debug().Msg("Creating Wayland capture")
-		capt = wayland.NewWaylandCapture()
+		capt, err = wayland.NewWaylandCapture()
+		if err != nil {
+			logging.Error().Err(err).Msg("Failed to create Wayland capture")
+			return fmt.Errorf("failed to create Wayland capture: %w", err)
+		}
 	default:
 		return fmt.Errorf("unsupported environment: %s", env)
 	}
@@ -157,9 +165,19 @@ func runHttpBridge(opts *Options) error {
 	var capt capture.ScreenCapture
 	switch env {
 	case capture.EnvironmentX11:
-		capt = x11.NewX11Capture()
+		logging.Debug().Msg("Creating X11 capture")
+		capt, err = x11.NewX11Capture()
+		if err != nil {
+			logging.Error().Err(err).Msg("Failed to create X11 capture")
+			return fmt.Errorf("failed to create X11 capture: %w", err)
+		}
 	case capture.EnvironmentWayland:
-		capt = wayland.NewWaylandCapture()
+		logging.Debug().Msg("Creating Wayland capture")
+		capt, err = wayland.NewWaylandCapture()
+		if err != nil {
+			logging.Error().Err(err).Msg("Failed to create Wayland capture")
+			return fmt.Errorf("failed to create Wayland capture: %w", err)
+		}
 	default:
 		return fmt.Errorf("unsupported environment: %s", env)
 	}
@@ -203,7 +221,7 @@ type captureScreenInput struct {
 }
 
 type captureWindowInput struct {
-	WindowID int64 `json:"window_id" jsonschema:"the window ID to capture"`
+	Title string `json:"title" jsonschema:"window title to capture (partial match supported)"`
 }
 
 type captureRegionInput struct {
@@ -262,6 +280,41 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 	toolNames = append(toolNames, "list_monitors")
 
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        "list_windows",
+		Description: "List all open windows with their titles and IDs",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, _ *listMonitorsInput) (*mcp.CallToolResult, any, error) {
+		logging.Debug().Str("tool", "list_windows").Msg("Tool called")
+		windows, err := t.ListWindows(ctx)
+		if err != nil {
+			logging.Error().Err(err).Str("tool", "list_windows").Msg("Tool failed")
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to list windows: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+		logging.Debug().Int("count", len(windows)).Msg("Windows listed")
+
+		jsonData, err := json.Marshal(windows)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to marshal windows: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: string(jsonData)},
+			},
+		}, nil, nil
+	})
+	toolNames = append(toolNames, "list_windows")
+
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        "capture_screen",
 		Description: "Capture the full screen or a specific monitor",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args *captureScreenInput) (*mcp.CallToolResult, any, error) {
@@ -287,10 +340,10 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "capture_window",
-		Description: "Capture a specific window by its ID",
+		Description: "Capture a specific window by its title (partial match supported)",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args *captureWindowInput) (*mcp.CallToolResult, any, error) {
-		logging.Debug().Str("tool", "capture_window").Int64("window_id", args.WindowID).Msg("Tool called")
-		imgBase64, err := t.CaptureWindow(ctx, args.WindowID)
+		logging.Debug().Str("tool", "capture_window").Str("title", args.Title).Msg("Tool called")
+		imgBase64, err := t.CaptureWindow(ctx, args.Title)
 		if err != nil {
 			logging.Error().Err(err).Str("tool", "capture_window").Msg("Tool failed")
 			return &mcp.CallToolResult{
