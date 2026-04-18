@@ -46,7 +46,7 @@ When performing git operations, the following rules **MUST** be followed:
 
 | Directory | Purpose |
 |-----------|---------|
-| `cmd/server/` | Main entrypoint |
+| `cmd/screenshooter-mcp-server/` | Main entrypoint |
 | `internal/tools/` | MCP tool implementations |
 | `internal/vision/` | Ollama API client, manager |
 | `internal/capture/` | Common types, interfaces |
@@ -56,7 +56,7 @@ When performing git operations, the following rules **MUST** be followed:
 ## Build & Test
 
 ```bash
-eval "$(direnv export bash)" && go build ./cmd/server    # Build
+eval "$(direnv export bash)" && go build ./cmd/screenshooter-mcp-server    # Build
 eval "$(direnv export bash)" && go test ./...             # Test all
 ```
 
