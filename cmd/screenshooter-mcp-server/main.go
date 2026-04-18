@@ -23,13 +23,14 @@ import (
 type Options struct {
 	Version          bool                 `short:"v" long:"version" description:"Show version"`
 	Help             bool                 `short:"h" long:"help" description:"Show help"`
-	VisionModel      string               `short:"m" long:"vision-model" description:"Vision model name" default:"qwen3-vl:4b"`
+	VisionModel      string               `short:"m" long:"vision-model" description:"Vision model name (defaults based on quality if not set)"`
 	ListVisionModels bool                 `long:"list-vision-models" description:"List available vision models"`
 	VisionQuality    vision.VisionQuality `short:"q" long:"vision-quality" description:"Vision quality" default:"middle"`
 	LogLevel         string               `short:"l" long:"log-level" description:"Log level" default:"info"`
 	Color            string               `long:"color" description:"Color output: always|never|auto" default:"auto"`
 	ModelCacheDir    string               `long:"model-cache-dir" description:"Directory for model cache"`
 	Listen           string               `long:"listen" description:"Listen on TCP address (e.g. 127.0.0.1:8080). Requires external MCP-to-HTTP bridge"`
+	GPU              bool                 `long:"gpu" description:"Enable GPU support (Vulkan backend)"`
 }
 
 func main() {
@@ -108,12 +109,15 @@ func run(opts *Options) error {
 		return fmt.Errorf("unsupported environment: %s", env)
 	}
 
-	logging.Info().Str("model", opts.VisionModel).Str("quality", string(opts.VisionQuality)).Msg("Starting Ollama vision manager")
+	logging.Info().Str("quality", string(opts.VisionQuality)).Bool("gpu", opts.GPU).Msg("Starting Ollama vision manager")
 
 	visionOpts := []vision.ManagerOption{
-		vision.WithModel(opts.VisionModel),
 		vision.WithQuality(opts.VisionQuality),
 		vision.WithDebug(opts.LogLevel == "debug"),
+		vision.WithGPU(opts.GPU),
+	}
+	if opts.VisionModel != "" {
+		visionOpts = append(visionOpts, vision.WithModel(opts.VisionModel))
 	}
 	if opts.ModelCacheDir != "" {
 		visionOpts = append(visionOpts, vision.WithModelCacheDir(opts.ModelCacheDir))
@@ -164,6 +168,7 @@ func runHttpBridge(opts *Options) error {
 		vision.WithModel(opts.VisionModel),
 		vision.WithQuality(opts.VisionQuality),
 		vision.WithDebug(opts.LogLevel == "debug"),
+		vision.WithGPU(opts.GPU),
 	}
 	if opts.ModelCacheDir != "" {
 		visionOpts = append(visionOpts, vision.WithModelCacheDir(opts.ModelCacheDir))

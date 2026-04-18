@@ -46,6 +46,7 @@ type Manager struct {
 	cmd           *exec.Cmd
 	modelCacheDir string
 	debug         bool
+	gpu           bool
 }
 
 type ManagerOption func(*Manager)
@@ -77,6 +78,12 @@ func WithModelCacheDir(dir string) ManagerOption {
 func WithDebug(debug bool) ManagerOption {
 	return func(m *Manager) {
 		m.debug = debug
+	}
+}
+
+func WithGPU(gpu bool) ManagerOption {
+	return func(m *Manager) {
+		m.gpu = gpu
 	}
 }
 
@@ -124,21 +131,27 @@ func (m *Manager) startOllama() error {
 	m.cmd = exec.Command(ollamaPath, "serve")
 
 	ollamaDir := filepath.Dir(ollamaPath)
+	ollamaLibDir := filepath.Join(ollamaDir, "..", "lib")
 
-	libraryPaths := []string{}
-	if strings.HasPrefix(ollamaPath, "/app/") || strings.HasPrefix(ollamaPath, "/tmp/.mount_") {
-		libraryPaths = append(libraryPaths, filepath.Join(ollamaDir, "..", "lib"))
-	} else {
-		libraryPaths = append(libraryPaths, filepath.Join(ollamaDir, "lib"))
-	}
-	libraryPaths = append(libraryPaths, os.Getenv("LD_LIBRARY_PATH"))
-
+	libraryPaths := []string{ollamaLibDir}
 	env := append(os.Environ(),
 		"LD_LIBRARY_PATH="+strings.Join(libraryPaths, ":"),
+		"OLLAMA_LIBRARY_PATH="+ollamaLibDir,
 		"OLLAMA_HOST=127.0.0.1:"+fmt.Sprintf("%d", m.port),
 		"OLLAMA_NO_CLOUD=1",
-		"OLLAMA_LLM_LIBRARY=cpu",
 	)
+
+	if m.debug {
+		env = append(env, "OLLAMA_DEBUG=1")
+	}
+
+	if m.gpu {
+		env = append(env, "OLLAMA_VULKAN=1")
+		logging.Info().Msg("GPU mode enabled, using Vulkan backend")
+	} else {
+		env = append(env, "OLLAMA_LLM_LIBRARY=cpu")
+		logging.Info().Msg("CPU-only mode enabled")
+	}
 
 	if m.modelCacheDir != "" {
 		env = append(env, "OLLAMA_MODELS="+m.modelCacheDir)
@@ -188,6 +201,14 @@ func (m *Manager) startOllama() error {
 			if err == nil {
 				resp.Body.Close()
 				logging.Info().Str("url", m.url).Int("pid", m.pid).Msg("Ollama ready")
+
+				pullCtx, pullCancel := context.WithTimeout(context.Background(), 600*time.Second)
+				defer pullCancel()
+
+				if err := m.PullModel(pullCtx); err != nil {
+					logging.Warn().Err(err).Str("model", m.model).Msg("Failed to pull model, will retry on first use")
+				}
+
 				return nil
 			}
 			time.Sleep(100 * time.Millisecond)
@@ -302,6 +323,54 @@ func (m *Manager) URL() string {
 
 func (m *Manager) Model() string {
 	return m.model
+}
+
+func (m *Manager) PullModel(ctx context.Context) error {
+	logging.Info().Str("model", m.model).Msg("Pulling model")
+
+	reqBody := map[string]interface{}{
+		"model":  m.model,
+		"stream": false,
+		"quiet":  !m.debug,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("failed to marshal pull request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, m.url+"/api/pull", strings.NewReader(string(jsonData)))
+	if err != nil {
+		return fmt.Errorf("failed to create pull request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	logging.Info().Str("url", m.url+"/api/pull").Msg("Pulling model from Ollama")
+	resp, err := m.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to pull model: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to pull model: status %d", resp.StatusCode)
+	}
+
+	var pullResp struct {
+		Status string `json:"status"`
+		Error  string `json:"error,omitempty"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&pullResp); err != nil {
+		logging.Warn().Err(err).Msg("Failed to decode pull response, model may still be downloading")
+	} else {
+		if pullResp.Error != "" {
+			return fmt.Errorf("pull error: %s", pullResp.Error)
+		}
+		logging.Info().Str("status", pullResp.Status).Msg("Model pull complete")
+	}
+
+	return nil
 }
 
 func (m *Manager) PID() int {
