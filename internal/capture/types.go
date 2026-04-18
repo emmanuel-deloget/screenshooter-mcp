@@ -26,7 +26,7 @@ type ScreenCapture interface {
 	ListMonitors() ([]Monitor, error)
 	ListWindows() ([]Window, error)
 	CaptureScreen(monitor string) (image.Image, error)
-	CaptureWindow(id WindowID) (image.Image, error)
+	CaptureWindow(title string) (image.Image, error)
 	CaptureRegion(x, y, w, h int) (image.Image, error)
 	CaptureAllScreens() (image.Image, error)
 }

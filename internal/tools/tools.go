@@ -29,6 +29,10 @@ func (t *Tools) ListMonitors(ctx context.Context) ([]capture.Monitor, error) {
 	return t.capture.ListMonitors()
 }
 
+func (t *Tools) ListWindows(ctx context.Context) ([]capture.Window, error) {
+	return t.capture.ListWindows()
+}
+
 func (t *Tools) CaptureScreen(ctx context.Context, monitor string) (string, error) {
 	img, err := t.capture.CaptureScreen(monitor)
 	if err != nil {
@@ -37,8 +41,8 @@ func (t *Tools) CaptureScreen(ctx context.Context, monitor string) (string, erro
 	return encodeImageToBase64(img)
 }
 
-func (t *Tools) CaptureWindow(ctx context.Context, windowID int64) (string, error) {
-	img, err := t.capture.CaptureWindow(capture.WindowID(windowID))
+func (t *Tools) CaptureWindow(ctx context.Context, title string) (string, error) {
+	img, err := t.capture.CaptureWindow(title)
 	if err != nil {
 		return "", fmt.Errorf("capture window failed: %w", err)
 	}
