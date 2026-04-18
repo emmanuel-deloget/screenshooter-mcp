@@ -123,8 +123,17 @@ func (m *Manager) startOllama() error {
 	m.cmd = exec.Command(ollamaPath, "serve")
 
 	ollamaDir := filepath.Dir(ollamaPath)
+
+	libraryPaths := []string{}
+	if strings.HasPrefix(ollamaPath, "/app/") || strings.HasPrefix(ollamaPath, "/tmp/.mount_") {
+		libraryPaths = append(libraryPaths, filepath.Join(ollamaDir, "..", "lib"))
+	} else {
+		libraryPaths = append(libraryPaths, filepath.Join(ollamaDir, "lib"))
+	}
+	libraryPaths = append(libraryPaths, os.Getenv("LD_LIBRARY_PATH"))
+
 	env := append(os.Environ(),
-		"LD_LIBRARY_PATH="+filepath.Join(ollamaDir, "lib"),
+		"LD_LIBRARY_PATH="+strings.Join(libraryPaths, ":"),
 		"OLLAMA_HOST=127.0.0.1:"+fmt.Sprintf("%d", m.port),
 		"OLLAMA_NO_CLOUD=1",
 		"OLLAMA_LLM_LIBRARY=cpu",
@@ -206,9 +215,15 @@ func findOllamaBinary() (string, error) {
 		return "", fmt.Errorf("failed to get executable path: %w", err)
 	}
 
-	localBin := filepath.Join(filepath.Dir(exe), "bin", "ollama")
+	exeDir := filepath.Dir(exe)
+	localBin := filepath.Join(exeDir, "bin", "ollama")
 	if _, err := os.Stat(localBin); err == nil {
 		return localBin, nil
+	}
+
+	appimageBin := filepath.Join(exeDir, "usr", "bin", "ollama")
+	if _, err := os.Stat(appimageBin); err == nil {
+		return appimageBin, nil
 	}
 
 	wd, err := os.Getwd()
@@ -219,7 +234,12 @@ func findOllamaBinary() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("ollama binary not found in ./bin/ollama")
+	usrBin := filepath.Join(wd, "usr", "bin", "ollama")
+	if _, err := os.Stat(usrBin); err == nil {
+		return usrBin, nil
+	}
+
+	return "", fmt.Errorf("ollama binary not found in ./bin/ollama or ./usr/bin/ollama")
 }
 
 func (m *Manager) Stop() {
