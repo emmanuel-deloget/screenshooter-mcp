@@ -11,6 +11,10 @@ script:
   - echo "=== Converting SVG icon to PNG ==="
   - python3 assets/icons/convert_icon.py || echo "Icon conversion failed, using placeholder"
 
+  - echo "=== Cleaning up build tools from AppDir ==="
+  - rm -rf AppDir/usr/bin/convert* AppDir/usr/bin/identify* AppDir/usr/bin/mogrify* AppDir/usr/bin/display* AppDir/usr/bin/animate* AppDir/usr/bin/composite* AppDir/usr/bin/conjure* AppDir/usr/bin/import* AppDir/usr/bin/stream* AppDir/usr/bin/montage* AppDir/usr/bin/compare* AppDir/usr/bin/ffmpeg AppDir/usr/bin/gs AppDir/usr/bin/gsandbox* AppDir/usr/bin/lib* 2>/dev/null || true
+  - rm -rf AppDir/usr/lib/x86_64-linux-gnu/ImageMagick* AppDir/usr/lib/x86_64-linux-gnu/graphics* 2>/dev/null || true
+
   - echo "=== Copying Go server binary ==="
   - cp screenshooter-mcp-server AppDir/usr/bin/
   - chmod +x AppDir/usr/bin/screenshooter-mcp-server
@@ -45,6 +49,7 @@ AppDir:
   runtime:
     env:
       OLLAMA_LIB_PATH: $APPDIR/usr/lib
+      OLLAMA_LIBRARY_PATH: $APPDIR/usr/lib
       OLLAMA_PATH: $APPDIR/usr/bin
       LD_LIBRARY_PATH: $APPDIR/usr/lib:$LD_LIBRARY_PATH
 
@@ -54,9 +59,7 @@ AppDir:
     sources:
       - sourceline: 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse'
         key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920d1991bc93c'
-    include:
-      - librsvg2-bin
-      - imagemagick
+    include: []
     exclude:
       - libc6
       - libc6-dev
