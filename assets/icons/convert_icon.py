@@ -34,7 +34,7 @@ def main():
     if subprocess.call(["which", "rsvg-convert"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
         result = subprocess.run(
             ["rsvg-convert", "-w", "48", "-h", "48", "-o", OUTPUT_ICON, svg_path],
-            capture_output=True
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
         if result.returncode == 0:
             print(f"Converted icon using rsvg-convert")
@@ -44,7 +44,7 @@ def main():
     if subprocess.call(["which", "convert"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
         result = subprocess.run(
             ["convert", "-background", "none", "-resize", "48x48", svg_path, OUTPUT_ICON],
-            capture_output=True
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
         if result.returncode == 0:
             print(f"Converted icon using ImageMagick")
