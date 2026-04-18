@@ -12,6 +12,8 @@ bin/
 *.dylib
 /screenshooter-mcp-server
 screenshooter-mcp-server.exe
+/AppDir
+/appimage-builder-cache
 
 # Test binary, built with `go test -c`
 *.test

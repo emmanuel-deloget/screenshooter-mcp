@@ -1,0 +1,63 @@
+version: 1
+
+script:
+  - echo "=== Installing SVG conversion tools ==="
+  - apt-get update -qq && apt-get install -y -qq librsvg2-bin imagemagick
+
+  - echo "=== Cleaning previous build ==="
+  - rm -rf AppDir | true
+  - mkdir -p AppDir/usr/bin AppDir/usr/lib AppDir/usr/share/icons/hicolor/48x48/apps
+
+  - echo "=== Converting SVG icon to PNG ==="
+  - python3 assets/icons/convert_icon.py || echo "Icon conversion failed, using placeholder"
+
+  - echo "=== Copying Go server binary ==="
+  - cp screenshooter-mcp-server AppDir/usr/bin/
+  - chmod +x AppDir/usr/bin/screenshooter-mcp-server
+
+  - echo "=== Copying Ollama binary ==="
+  - cp bin/ollama/bin/ollama AppDir/usr/bin/
+  - chmod +x AppDir/usr/bin/ollama
+
+  - echo "=== Copying Ollama libraries ==="
+  - cp -r bin/ollama/lib/ollama/* AppDir/usr/lib/
+
+AppDir:
+  path: ./AppDir
+
+  app_info:
+    id: com.screenshooter.mcp
+    name: screenshooter-mcp
+    icon: com.screenshooter.mcp
+    version: "0.1.0"
+    exec: usr/bin/screenshooter-mcp-server
+    exec_args: $@
+
+  runtime:
+    env:
+      OLLAMA_LIB_PATH: $APPDIR/usr/lib
+      OLLAMA_PATH: $APPDIR/usr/bin
+      LD_LIBRARY_PATH: $APPDIR/usr/lib:$LD_LIBRARY_PATH
+
+  apt:
+    arch: amd64
+    allow_unauthenticated: true
+    sources:
+      - sourceline: 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse'
+        key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920d1991bc93c'
+    include:
+      - librsvg2-bin
+      - imagemagick
+    exclude: []
+
+  files:
+    include: []
+    exclude:
+      - usr/share/man
+      - usr/share/doc
+      - usr/include
+      - usr/sbin
+
+AppImage:
+  arch: x86_64
+  update-information: None
