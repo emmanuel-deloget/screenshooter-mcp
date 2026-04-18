@@ -19,6 +19,9 @@ compatibility: opencode
 - **Message**: explain WHY the change was made, not HOW
 - **Fixes clause**: when fixing a problem, add `Fixes: <commit hash> (commit title)` between title and body
 
+### Amending Commits
+- **DO NOT remove sign-off** when amending: always use `-s` flag in `git commit --amend`
+
 ### Configuration
 - **ALL config changes** MUST use `--local` flag: `git config --local ...`
 
