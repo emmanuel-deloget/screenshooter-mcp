@@ -17,10 +17,19 @@ script:
 
   - echo "=== Copying Ollama binary ==="
   - cp bin/ollama/bin/ollama AppDir/usr/bin/
-  - chmod +x AppDir/usr/bin/ollama
+  - chmod 0755 AppDir/usr/bin/ollama
 
-  - echo "=== Copying Ollama libraries ==="
+  - echo "=== Copying Ollama libraries (excluding CUDA) ==="
   - cp -r bin/ollama/lib/ollama/* AppDir/usr/lib/
+  - echo "=== Removing CUDA libraries to reduce size ==="
+  - rm -rf AppDir/usr/lib/cuda_v12 AppDir/usr/lib/cuda_v13
+
+  - echo "=== Fixing library permissions ==="
+  - find AppDir/usr/lib -type f -name "*.so*" -exec chmod 0644 {} \; 2>/dev/null || true
+
+  - echo "=== Ensuring execute permissions ==="
+  - chmod 0755 AppDir/usr/bin/ollama
+  - chmod 0755 AppDir/usr/bin/screenshooter-mcp-server
 
 AppDir:
   path: ./AppDir
@@ -48,7 +57,13 @@ AppDir:
     include:
       - librsvg2-bin
       - imagemagick
-    exclude: []
+    exclude:
+      - libc6
+      - libc6-dev
+      - libgcc-s1
+      - gcc-14-base
+      - zlib1g
+      - libstdc++6
 
   files:
     include: []

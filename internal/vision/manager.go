@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -212,34 +213,79 @@ func (w *ollamaWriter) Write(p []byte) (n int, err error) {
 func findOllamaBinary() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
+		logging.Debug().Err(err).Msg("Failed to get executable path")
 		return "", fmt.Errorf("failed to get executable path: %w", err)
 	}
+	logging.Debug().Str("exe", exe).Msg("Looking for Ollama binary")
 
 	exeDir := filepath.Dir(exe)
-	localBin := filepath.Join(exeDir, "bin", "ollama")
-	if _, err := os.Stat(localBin); err == nil {
-		return localBin, nil
+	sameDirOllama := filepath.Join(exeDir, "ollama")
+	logging.Debug().Str("path", sameDirOllama).Msg("Checking same directory as server")
+	if _, err := os.Stat(sameDirOllama); err == nil {
+		logging.Debug().Str("path", sameDirOllama).Msg("Found Ollama in same directory as server")
+		return sameDirOllama, nil
 	}
 
-	appimageBin := filepath.Join(exeDir, "usr", "bin", "ollama")
-	if _, err := os.Stat(appimageBin); err == nil {
-		return appimageBin, nil
+	logging.Debug().Msg("Ollama binary not found in bundled locations")
+
+	if ollamaPath, err := findOllamaInPath(); err == nil {
+		logging.Debug().Str("path", ollamaPath).Msg("Found Ollama in PATH")
+		return ollamaPath, nil
 	}
 
-	wd, err := os.Getwd()
-	if err == nil {
-		wdBin := filepath.Join(wd, "bin", "ollama")
-		if _, err := os.Stat(wdBin); err == nil {
-			return wdBin, nil
+	logging.Debug().Msg("Ollama binary not found")
+	return "", fmt.Errorf("ollama binary not found, please install Ollama or place it next to the server binary")
+}
+
+func findOllamaInPath() (string, error) {
+	pathEnv := os.Getenv("PATH")
+	if pathEnv == "" {
+		return "", fmt.Errorf("PATH not set")
+	}
+
+	paths := strings.Split(pathEnv, ":")
+	for _, dir := range paths {
+		ollamaPath := filepath.Join(dir, "ollama")
+		if _, err := os.Stat(ollamaPath); err == nil {
+			if checkOllamaVersion(ollamaPath) {
+				return ollamaPath, nil
+			}
 		}
 	}
+	return "", fmt.Errorf("ollama not found in PATH")
+}
 
-	usrBin := filepath.Join(wd, "usr", "bin", "ollama")
-	if _, err := os.Stat(usrBin); err == nil {
-		return usrBin, nil
+func checkOllamaVersion(ollamaPath string) bool {
+	cmd := exec.Command(ollamaPath, "version")
+	output, err := cmd.Output()
+	if err != nil {
+		logging.Debug().Err(err).Str("path", ollamaPath).Msg("Failed to get Ollama version")
+		return false
+	}
+	version := strings.TrimSpace(string(output))
+	logging.Debug().Str("version", version).Str("path", ollamaPath).Msg("Found Ollama in PATH")
+
+	versionParts := strings.Split(version, ".")
+	if len(versionParts) < 2 {
+		return false
 	}
 
-	return "", fmt.Errorf("ollama binary not found in ./bin/ollama or ./usr/bin/ollama")
+	major := 0
+	if v, err := strconv.Atoi(versionParts[0]); err == nil {
+		major = v
+	}
+
+	minor := 0
+	if v, err := strconv.Atoi(versionParts[1]); err == nil {
+		minor = v
+	}
+
+	if major > 0 || (major == 0 && minor >= 18) {
+		return true
+	}
+
+	logging.Debug().Str("version", version).Msg("Ollama version too old, need 0.18.0+")
+	return false
 }
 
 func (m *Manager) Stop() {

@@ -5,6 +5,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
+[ -f appimage-builder.yml ] || {
+	echo "We're missing some crucial file to continue. Are we in the correct directory?"
+	pwd
+	exit 1
+}
+
+echo "=== Cleaning old artefacts ==="
+{
+	rm -rf AppDir appimage-builder-cache
+	rm -f screenshooter-mcp-*-x86_64.AppImage
+	rm -f screenshooter-mcp-server
+} > /dev/null 2>&1
+
 OLLAMA_VERSION="0.21.0"
 VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
 VERSION="${VERSION#v}"
