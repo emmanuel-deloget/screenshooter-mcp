@@ -16,6 +16,7 @@ echo "=== Cleaning old artefacts ==="
 	rm -rf AppDir appimage-builder-cache
 	rm -f screenshooter-mcp-*-x86_64.AppImage
 	rm -f screenshooter-mcp-server
+	rm -rf bin/ollama
 } > /dev/null 2>&1
 
 OLLAMA_VERSION="0.21.0"
