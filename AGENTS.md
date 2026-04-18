@@ -13,6 +13,7 @@ When performing git operations, the following rules **MUST** be followed:
 - **Title format**: `subsystem: change description` (lowercase, concise)
 - **Message**: explain WHY the change was made, not HOW
 - **Fixes clause**: when fixing a problem, add `Fixes: <commit hash> (commit title)` between title and body
+- **Amending**: do NOT remove sign-off when amending - always use `-s` flag in `git commit --amend`
 - **ALL config changes** MUST use `--local` flag: `git config --local ...`
 - When multiple commits are needed, **SHOW THE PLAN** before proceeding
 
