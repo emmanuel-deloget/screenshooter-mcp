@@ -1,0 +1,401 @@
+name: Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (e.g., v1.0.0)
+        required: true
+        type: string
+  release:
+    types: [published]
+
+env:
+  GO_VERSION: '1.26'
+
+jobs:
+  build-alpine:
+    name: Build Alpine (musl static)
+    runs-on: ubuntu-latest
+    container: alpine:latest
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build static binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+
+      - name: Create tar.gz (server)
+        run: |
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server
+          cp screenshooter-mcp screenshooter-mcp-${{ matrix.arch }}-server/
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/etc/screenshooter-mcp
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/usr/lib/sysusers
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/usr/lib/sysusers
+          echo 'screenshooter-mcp:x:973:' > screenshooter-mcp-${{ matrix.arch }}-server/usr/lib/sysusers/screenshooter-mcp
+          cat > screenshooter-mcp-${{ matrix.arch }}-server/usr/lib/sysusers/screenshooter-mcp << 'SYSUSER'
+          screenshooter-mcp:x:973:
+          SYSUSER
+          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > screenshooter-mcp-${{ matrix.arch }}-server/etc/screenshooter-mcp/config.json
+          tar -czvf screenshooter-mcp-${{ matrix.arch }}-server.tar.gz screenshooter-mcp-${{ matrix.arch }}-server/
+
+      - name: Create tar.gz (stdio)
+        run: |
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio
+          cp screenshooter-mcp screenshooter-mcp-${{ matrix.arch }}-stdio/
+          tar -czvf screenshooter-mcp-${{ matrix.arch }}-stdio.tar.gz screenshooter-mcp-${{ matrix.arch }}-stdio/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpine-${{ matrix.arch }}
+          path: |
+            screenshooter-mcp-${{ matrix.arch }}-server.tar.gz
+            screenshooter-mcp-${{ matrix.arch }}-stdio.tar.gz
+
+  build-debian:
+    name: Build Debian
+    runs-on: ubuntu-latest
+    container: debian:bookworm-slim
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            goarch: x86_64
+          - arch: arm64
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update && apt-get install -y ruby ruby-dev rubygems build-essential fpm
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build binary
+        run: |
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+
+      - name: Create server package
+        run: |
+          mkdir -p usr/bin etc/screenshooter-mcp usr/lib/systemd/system
+          cp screenshooter-mcp usr/bin/screenshooter-mcp-server
+          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > etc/screenshooter-mcp/config.json
+          cat > usr/lib/systemd/system/screenshooter-mcp.service << 'SYSTEMD'
+          [Unit]
+          Description=Screenshooter MCP Server
+          After=graphical.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/screenshooter-mcp-server --listen 127.0.0.1:11777
+          Restart=on-failure
+          User=screenshooter-mcp
+          Group=screenshooter-mcp
+
+          [Install]
+          WantedBy=multi-user.target
+          SYSTEMD
+
+          fpm -s dir -t deb \
+            -n screenshooter-mcp-server \
+            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            --architecture ${{ matrix.arch }} \
+            --description "Screenshooter MCP Server (HTTP mode)" \
+            --maintainer "developer@example.com" \
+            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
+            --depends systemd-sysv \
+            --before-remove "if [ -x /usr/bin/screenshooter-mcp-server ]; then systemctl stop screenshooter-mcp 2>/dev/null; fi" \
+            usr/bin/=/usr/bin/ \
+            etc/=/etc/ \
+            usr/lib/systemd/system/=/lib/systemd/system/
+
+      - name: Create stdio package
+        run: |
+          mkdir -p usr/bin
+          cp screenshooter-mcp usr/bin/screenshooter-mcp-stdio
+          fpm -s dir -t deb \
+            -n screenshooter-mcp-stdio \
+            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            --architecture ${{ matrix.arch }} \
+            --description "Screenshooter MCP (stdio mode)" \
+            --maintainer "developer@example.com" \
+            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
+            usr/bin/=/usr/bin/
+
+      - name: Rename packages
+        run: |
+          mv screenshooter-mcp-server_*_${{ matrix.arch }}.deb screenshooter-mcp-server_${{ matrix.arch }}.deb
+          mv screenshooter-mcp-stdio_*_${{ matrix.arch }}.deb screenshooter-mcp-stdio_${{ matrix.arch }}.deb
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-${{ matrix.arch }}
+          path: |
+            screenshooter-mcp-server_${{ matrix.arch }}.deb
+            screenshooter-mcp-stdio_${{ matrix.arch }}.deb
+
+  build-fedora:
+    name: Build Fedora
+    runs-on: ubuntu-latest
+    container: fedora:41
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            goarch: x86_64
+          - arch: aarch64
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          dnf install -y ruby ruby-devel gcc @development-tools
+          gem install fpm --no-document
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build binary
+        run: |
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+
+      - name: Create server package
+        run: |
+          mkdir -p usr/bin etc/screenshooter-mcp usr/lib/systemd/system
+          cp screenshooter-mcp usr/bin/screenshooter-mcp-server
+          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > etc/screenshooter-mcp/config.json
+          cat > usr/lib/systemd/system/screenshooter-mcp.service << 'SYSTEMD'
+          [Unit]
+          Description=Screenshooter MCP Server
+          After=graphical.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/screenshooter-mcp-server --listen 127.0.0.1:11777
+          Restart=on-failure
+          User=screenshooter-mcp
+          Group=screenshooter-mcp
+
+          [Install]
+          WantedBy=multi-user.target
+          SYSTEMD
+
+          ARCH=${{ matrix.arch }}
+          fpm -s dir -t rpm \
+            -n screenshooter-mcp-server \
+            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            --architecture $ARCH \
+            --description "Screenshooter MCP Server (HTTP mode)" \
+            --maintainer "developer@example.com" \
+            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
+            --before-remove "if systemctl is-active screenshooter-mcp >/dev/null 2>&1; then systemctl stop screenshooter-mcp; fi" \
+            usr/bin/=/usr/bin/ \
+            etc/=/etc/ \
+            usr/lib/systemd/system/=/lib/systemd/system/
+
+      - name: Create stdio package
+        run: |
+          mkdir -p usr/bin
+          cp screenshooter-mcp usr/bin/screenshooter-mcp-stdio
+          ARCH=${{ matrix.arch }}
+          fpm -s dir -t rpm \
+            -n screenshooter-mcp-stdio \
+            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            --architecture $ARCH \
+            --description "Screenshooter MCP (stdio mode)" \
+            --maintainer "developer@example.com" \
+            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
+            usr/bin/=/usr/bin/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fedora-${{ matrix.arch }}
+          path: |
+            screenshooter-mcp-server-*.rpm
+            screenshooter-mcp-stdio-*.rpm
+
+  build-arch:
+    name: Build Arch
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            goarch: x86_64
+          - arch: aarch64
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          pacman -Sy --noconfirm ruby gcc make
+          gem install fpm --no-document
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build binary
+        run: |
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+
+      - name: Create server package
+        run: |
+          mkdir -p usr/bin etc/screenshooter-mcp usr/lib/systemd/system
+          cp screenshooter-mcp usr/bin/screenshooter-mcp-server
+          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > etc/screenshooter-mcp/config.json
+          cat > usr/lib/systemd/system/screenshooter-mcp.service << 'SYSTEMD'
+          [Unit]
+          Description=Screenshooter MCP Server
+          After=graphical.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/bin/screenshooter-mcp-server --listen 127.0.0.1:11777
+          Restart=on-failure
+          User=screenshooter-mcp
+          Group=screenshooter-mcp
+
+          [Install]
+          WantedBy=multi-user.target
+          SYSTEMD
+
+          ARCH=${{ matrix.arch }}
+          fpm -s dir -t pacman \
+            -n screenshooter-mcp-server \
+            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            --architecture "$ARCH" \
+            --description "Screenshooter MCP Server (HTTP mode)" \
+            --maintainer "developer@example.com" \
+            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
+            usr/bin/=/usr/bin/ \
+            etc/=/etc/ \
+            usr/lib/systemd/system/=/lib/systemd/system/
+
+      - name: Create stdio package
+        run: |
+          mkdir -p usr/bin
+          cp screenshooter-mcp usr/bin/screenshooter-mcp-stdio
+          ARCH=${{ matrix.arch }}
+          fpm -s dir -t pacman \
+            -n screenshooter-mcp-stdio \
+            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            --architecture "$ARCH" \
+            --description "Screenshooter MCP (stdio mode)" \
+            --maintainer "developer@example.com" \
+            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
+            usr/bin/=/usr/bin/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-${{ matrix.arch }}
+          path: |
+            screenshooter-mcp-server-*.pkg.tar.zst
+            screenshooter-mcp-stdio-*.pkg.tar.zst
+
+  build-alpine-apk:
+    name: Build Alpine APK
+    runs-on: ubuntu-latest
+    container: alpine:latest
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apk add ruby ruby-dev gcc musl-dev
+          gem install fpm --no-document
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build static binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.arch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+
+      - name: Create server package
+        run: |
+          mkdir -p etc/screenshooter-mcp
+          cp screenshooter-mcp /usr/local/bin/screenshooter-mcp-server
+          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > etc/screenshooter-mcp/config.json
+          cat > /etc/init.d/screenshooter-mcp << 'INITD'
+          #!/bin/sh
+          NAME=screenshooter-mcp
+          DESC="Screenshooter MCP Server"
+          DAEMON=/usr/local/bin/$NAME-server
+          PIDFILE=/var/run/$NAME.pid
+
+          case "$1" in
+            start)
+              echo "Starting $DESC: $NAME"
+              start-stop-daemon -b -m -p $PIDFILE -S -- $DAEMON --listen 127.0.0.1:11777
+              ;;
+            stop)
+              echo "Stopping $DESC: $NAME"
+              start-stop-daemon -p $PIDFILE -K
+              ;;
+            *)
+              echo "Usage: $0 {start|stop}"
+              exit 1
+              ;;
+          esac
+          INITD
+          chmod +x /etc/init.d/screenshooter-mcp
+          fpm -s dir -t apk \
+            -n screenshooter-mcp-server \
+            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            --architecture ${{ matrix.arch }} \
+            --description "Screenshooter MCP Server (HTTP mode)" \
+            --maintainer "developer@example.com" \
+            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
+            --replaces "screenshooter-mcp-stdio" \
+            /usr/local/bin/=/usr/local/bin/ \
+            etc/=/etc/ \
+            /etc/init.d/=/etc/init.d/
+
+      - name: Create stdio package
+        run: |
+          mkdir -p /usr/local/bin
+          cp screenshooter-mcp /usr/local/bin/screenshooter-mcp-stdio
+          fpm -s dir -t apk \
+            -n screenshooter-mcp-stdio \
+            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            --architecture ${{ matrix.arch }} \
+            --description "Screenshooter MCP (stdio mode)" \
+            --maintainer "developer@example.com" \
+            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
+            /usr/local/bin/=/usr/local/bin/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpine-apk-${{ matrix.arch }}
+          path: |
+            screenshooter-mcp-server-*.apk
+            screenshooter-mcp-stdio-*.apk
