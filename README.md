@@ -86,6 +86,24 @@ Options:
 --stdio              Force stdio mode (overrides --listen)
 ```
 
+
+## Configuration
+
+Configuration is loaded from (in order of priority):
+1. `--config` CLI flag
+2. `SCREENSHOOTER_CONFIG` environment variable
+3. User config: `$XDG_CONFIG_HOME/screenshooter-mcp/config.json` (default: `~/.config/screenshooter-mcp/config.json`)
+4. System config: `/etc/screenshooter-mcp/config.json`
+
+Default config:
+```json
+{
+  "log_level": "info",
+  "color": "auto",
+  "listen": ""
+}
+```
+
 ## MCP Tools
 
 ### list_monitors
