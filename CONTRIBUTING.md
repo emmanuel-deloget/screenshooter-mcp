@@ -78,3 +78,29 @@ docs: update README with installation instructions
 ## Questions
 
 For questions, open a discussion on GitHub.
+
+## Ideas for Contributions
+
+The project is focused on screenshot capabilities for Linux. Contributions are welcome in these areas:
+
+### Platform Support
+
+- Support for other operating systems (macOS, Windows)
+- Support for additional Linux distributions
+
+### Architecture Support
+
+- Support for additional CPU architectures (ARM, RISC-V)
+
+### Related Tools
+
+- Screen annotation or drawing tools
+- Image cropping or manipulation
+- Any tools that enhance the screenshot workflow
+
+### Vision Model Integration
+
+- Integration with vision models (local or API-based) for element detection
+- OCR capabilities for captured screens
+
+**Note:** Currently, only X11 and Wayland on Linux are supported. If you'd like to add support for other platforms, please open an issue to discuss the approach first.
