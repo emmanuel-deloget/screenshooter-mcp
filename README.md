@@ -1,5 +1,9 @@
 # ScreenshooterMCP
 
+[![CI](https://github.com/emmanuel-deloget/screenshooter-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/emmanuel-deloget/screenshooter-mcp/actions/workflows/ci.yml)
+[![Go Version](https://img.shields.io/badge/Go-1.26-blue)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 
 ## Features
