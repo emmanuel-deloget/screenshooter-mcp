@@ -116,6 +116,10 @@ func (c *X11Capture) ListWindows() ([]capture.Window, error) {
 func (c *X11Capture) CaptureScreen(monitor string) (image.Image, error) {
 	logging.Debug().Str("monitor", monitor).Msg("CaptureScreen called")
 
+	if monitor == "" {
+		return c.CaptureAllScreens()
+	}
+
 	monitors, err := c.ListMonitors()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list monitors: %w", err)
@@ -280,8 +284,14 @@ func (c *x11Conn) getMonitors() ([]capture.Monitor, error) {
 		return nil, fmt.Errorf("failed to get screen resources: %w", err)
 	}
 
-	monitors := make([]capture.Monitor, 0, 8)
-	for i, output := range resources.Outputs {
+	type rawMonitor struct {
+		name       string
+		x, y       int16
+		width, height uint16
+	}
+
+	rawMonitors := make([]rawMonitor, 0, 8)
+	for _, output := range resources.Outputs {
 		info, err := randr.GetOutputInfo(c.conn, output, resources.ConfigTimestamp).Reply()
 		if err != nil {
 			continue
@@ -296,23 +306,66 @@ func (c *x11Conn) getMonitors() ([]capture.Monitor, error) {
 			continue
 		}
 
-		position := "left"
-		if i > 0 {
-			position = fmt.Sprintf("%d", i+1)
-		}
-
-		monitors = append(monitors, capture.Monitor{
-			Name:    fmt.Sprintf("%dx%d-%s", int(crtcInfo.Width), int(crtcInfo.Height), position),
-			Aliases: []string{string(info.Name), fmt.Sprintf("%d", i+1)},
-			X:       int(crtcInfo.X),
-			Y:       int(crtcInfo.Y),
-			Width:   int(crtcInfo.Width),
-			Height:  int(crtcInfo.Height),
+		rawMonitors = append(rawMonitors, rawMonitor{
+			name:  string(info.Name),
+			x:     crtcInfo.X,
+			y:     crtcInfo.Y,
+			width:  crtcInfo.Width,
+			height: crtcInfo.Height,
 		})
 	}
 
-	if len(monitors) == 0 {
+	if len(rawMonitors) == 0 {
 		return nil, fmt.Errorf("no monitors found")
+	}
+
+	primaryIdx := 0
+	for i, m := range rawMonitors {
+		if m.x == 0 && m.y == 0 {
+			primaryIdx = i
+			break
+		}
+	}
+
+	computePosition := func(idx int, x, y int16) string {
+		if idx == primaryIdx {
+			return "middle"
+		}
+
+		primary := rawMonitors[primaryIdx]
+		relX := int(x) - int(primary.x)
+		relY := int(y) - int(primary.y)
+
+		if relX < 0 {
+			return "left"
+		} else if relX > 0 {
+			return "right"
+		} else if relY < 0 {
+			return "up"
+		} else if relY > 0 {
+			return "down"
+		}
+		return "middle"
+	}
+
+	monitors := make([]capture.Monitor, 0, len(rawMonitors))
+	for i, rm := range rawMonitors {
+		position := computePosition(i, rm.x, rm.y)
+		width := int(rm.width)
+		height := int(rm.height)
+
+		monitors = append(monitors, capture.Monitor{
+			Name:    rm.name,
+			Aliases: []string{
+				fmt.Sprintf("%s-%dx%d", position, width, height),
+				rm.name,
+				fmt.Sprintf("%d", i+1),
+			},
+			X:      int(rm.x),
+			Y:      int(rm.y),
+			Width:  width,
+			Height: height,
+		})
 	}
 
 	return monitors, nil

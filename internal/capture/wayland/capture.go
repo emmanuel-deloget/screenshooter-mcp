@@ -124,6 +124,10 @@ func (c *WaylandCapture) ListWindows() ([]capture.Window, error) {
 func (c *WaylandCapture) CaptureScreen(monitor string) (image.Image, error) {
 	logging.Debug().Str("monitor", monitor).Msg("CaptureScreen called")
 
+	if monitor == "" {
+		return c.CaptureAllScreens()
+	}
+
 	monitors, err := c.ListMonitors()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list monitors: %w", err)
