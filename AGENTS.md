@@ -1,6 +1,6 @@
 # ScreenshooterMCP
 
-MCP server enabling AI agents to take screenshots and locate UI elements using a local vision model.
+MCP server enabling AI agents to take screenshots and locate UI elements.
 
 ## WARNING: IMPORTANT NOTICE
 
@@ -32,12 +32,13 @@ When performing git operations, the following rules **MUST** be followed:
 │               (Claude Desktop, etc.)                │
 └─────────────────────┬───────────────────────────────┘
                       │ stdio (MCP over stdin/stdout)
+                      │ or HTTP (--listen flag)
 ┌─────────────────────▼───────────────────────────────┐
 │                  MCP Server (Go)                     │
 │  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐  │
-│  │   tools/    │  │   vision/   │  │   capture/    │  │
-│  │ capture_*  │──│  ollama.go  │──│   x11/        │  │
-│  │ find_*     │  │  manager    │  │   wayland/    │  │
+│  │   tools/    │  │   config/  │  │   capture/    │  │
+│  │ capture_*   │──│             │──│   x11/        │  │
+│  │ list_*      │  │             │  │   wayland/    │  │
 │  └─────────────┘  └─────────────┘  └───────────────┘  │
 └─────────────────────────────────────────────────────┘
 ```
@@ -48,7 +49,7 @@ When performing git operations, the following rules **MUST** be followed:
 |-----------|---------|
 | `cmd/screenshooter-mcp-server/` | Main entrypoint |
 | `internal/tools/` | MCP tool implementations |
-| `internal/vision/` | Ollama API client, manager |
+| `internal/config/` | Configuration loading |
 | `internal/capture/` | Common types, interfaces |
 | `internal/capture/x11/` | X11 capture implementation |
 | `internal/capture/wayland/` | Wayland capture implementation |
@@ -66,11 +67,25 @@ eval "$(direnv export bash)" && go test ./...             # Test all
 screenshot-mcp-server [options]
   -v, --version           Show version
   -h, --help              Show help
-  -m, --vision-model      Vision model name (default: moondream2)
-  --list-vision-models    List available vision models
-  -q, --vision-quality    Vision quality: low|middle|high (default: middle)
+  --config                Path to config file
   -l, --log-level         Log level: debug|info|warn|error (default: info)
   --color                 Color output: always|never|auto (default: auto)
+  --listen                Listen on TCP address (e.g. 127.0.0.1:8080)
+```
+
+## Configuration
+
+Configuration is loaded from (in order of priority):
+1. `--config` CLI flag
+2. `SCREENSHOOTER_CONFIG` environment variable
+3. Default: `~/.local/share/screenshooter-mcp/config.json`
+
+Default config:
+```json
+{
+  "log_level": "info",
+  "color": "auto"
+}
 ```
 
 ## MCP Tools
@@ -78,11 +93,10 @@ screenshot-mcp-server [options]
 | Tool | Description |
 |------|-------------|
 | `list_monitors` | List available monitors with names and aliases |
-| `capture_screen` | Capture full screen(s) - returns PNG image |
-| `capture_window` | Capture specific window by ID - returns PNG image |
+| `list_windows` | List open windows with titles and IDs |
+| `capture_screen` | Capture full screen or specific monitor - returns PNG image |
+| `capture_window` | Capture window by title (partial match supported) - returns PNG image |
 | `capture_region` | Capture region from virtual screen - returns PNG image |
-| `find_element` | Vision-based element location - returns `{bbox, description, confidence}` |
-| `capture_element` | Find element + crop - returns cropped PNG image |
 
 ## Monitor Naming
 
@@ -112,30 +126,20 @@ On startup, detect X11 vs Wayland:
 2. Fallback: check for X11 socket (`DISPLAY` set) vs Wayland socket (`WAYLAND_DISPLAY` set)
 3. Exit with error if no desktop environment detected
 
-## Ollama Integration
-
-- Ollama spawned on server startup with random port on `127.0.0.0/8`
-- PID tracked for cleanup on shutdown
-- Vision quality affects image encoding (low=jpeg50%, middle/high=png)
-
-## Vision Model
-
-- **CPU-only**: Designed to run efficiently without GPU
-- **Recommended**: `moondream2` (~1.4B params, fast on CPU)
-- **Alternatives**: `llava`, `qwen2-vl`
-
 ## Distribution
 
-- **AppImage**: Bundles Go MCP server + Ollama binary
-- **First-run**: Check for cached model; download if missing
+- **Binary**: Just `go build` the server and distribute the single binary
+- **No bundled runtime**: Vision API support planned for future (user provides their own)
 
 ## Dependencies
 
 | Package | Purpose |
 |---------|---------|
 | `github.com/jessevdk/go-flags` | CLI argument parsing |
-| `github.com/modelcontextprotocol/go-sdk` | MCP protocol (planned) |
-| `github.com/rs/zerolog` | Structured logging (planned) |
+| `github.com/modelcontextprotocol/go-sdk` | MCP protocol |
+| `github.com/rs/zerolog` | Structured logging |
+| `github.com/nskaggs/perfuncted` | Screen capture (X11, Wayland, Portal) |
+| `github.com/jezek/xgb` | X11 bindings for multi-monitor support |
 
 ## Testing
 
