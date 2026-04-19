@@ -1,6 +1,6 @@
 # ScreenshooterMCP
 
-MCP server enabling AI agents to take screenshots and locate UI elements.
+MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 
 ## WARNING: IMPORTANT NOTICE
 
@@ -70,7 +70,8 @@ screenshot-mcp-server [options]
   --config                Path to config file
   -l, --log-level         Log level: debug|info|warn|error (default: info)
   --color                 Color output: always|never|auto (default: auto)
-  --listen                Listen on TCP address (e.g. 127.0.0.1:8080)
+  --listen                Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio'
+  --stdio                 Force stdio mode (overrides --listen)
 ```
 
 ## Configuration
@@ -78,13 +79,15 @@ screenshot-mcp-server [options]
 Configuration is loaded from (in order of priority):
 1. `--config` CLI flag
 2. `SCREENSHOOTER_CONFIG` environment variable
-3. Default: `~/.local/share/screenshooter-mcp/config.json`
+3. User config: `$XDG_CONFIG_HOME/screenshooter-mcp/config.json` (default: `~/.config/screenshooter-mcp/config.json`)
+4. System config: `/etc/screenshooter-mcp/config.json`
 
 Default config:
 ```json
 {
   "log_level": "info",
-  "color": "auto"
+  "color": "auto",
+  "listen": ""
 }
 ```
 
@@ -141,6 +144,21 @@ On startup, detect X11 vs Wayland:
 | `github.com/nskaggs/perfuncted` | Screen capture (X11, Wayland, Portal) |
 | `github.com/jezek/xgb` | X11 bindings for multi-monitor support |
 
+## Package Distribution
+
+Binary packages are built in `.github/workflows/packages.yml` for:
+
+| Distribution | Package Format |
+|--------------|----------------|
+| Debian/Ubuntu | `.deb` |
+| Fedora | `.rpm` |
+| Arch Linux | `.pkg.tar.zst` |
+| Alpine | `.tar.gz`, `.apk` |
+
+Each distribution has two package variants:
+- **server**: HTTP server with systemd unit, config in `/etc/screenshooter-mcp/`
+- **stdio**: Standalone binary for MCP client integration
+
 ## Testing
 
 - Standard Go `testing` package
@@ -153,3 +171,98 @@ GitHub Actions workflow in `.github/workflows/ci.yml`:
 - Build and test on push/PR
 - Go vet linting
 - Security vulnerability scanning with govulncheck
+
+## Style Guide
+
+### General Principles
+
+- Keep functions focused and small
+- Use meaningful variable names
+- Avoid global state
+- Return errors explicitly, don't use panic
+- Prefer clear over clever
+
+### Error Handling
+
+```go
+// Good: explicit error handling
+if err != nil {
+    return fmt.Errorf("failed to create capture: %w", err)
+}
+
+// Bad: ignoring errors
+_ = something()
+```
+
+### Naming
+
+- Use camelCase for variables and functions
+- Use PascalCase for exported types and functions
+- Use snake_case for file names
+- Keep names descriptive but not verbose
+
+### Imports
+
+- Group stdlib imports separately from external packages
+- Use meaningful aliases only when needed
+
+```go
+import (
+    "context"
+    "fmt"
+
+    "github.com/example/package"
+)
+```
+
+### Testing
+
+- Place tests in `*_test.go` files in the same package
+- Use table-driven tests for multiple test cases
+- Name test functions with `Test` prefix
+- Test behavior, not implementation
+
+```go
+func TestCaptureScreen(t *testing.T) {
+    tests := []struct {
+        name    string
+        monitor string
+        want    error
+    }{...}
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // test logic
+        })
+    }
+}
+```
+
+## Operational Guidelines
+
+### When to Commit
+
+- Commit early and often with focused changes
+- Each commit should represent one logical change
+- Never commit without explicit permission from user
+
+### Before Submitting
+
+1. Run `go vet ./...` - check for issues
+2. Run `go test ./...` - ensure tests pass
+3. Review diff with `git diff`
+
+### Code Review
+
+- Keep PRs focused and small
+- Explain WHY changes were made, not just WHAT
+- Reference related issues
+
+### Build Commands
+
+```bash
+eval "$(direnv export bash)" && go build ./...          # Build all
+eval "$(direnv export bash)" && go test ./...          # Run tests
+eval "$(direnv export bash)" && go vet ./...           # Lint
+eval "$(direnv export bash)" && go build -o bin/server ./cmd/screenshooter-mcp-server  # Build binary
+```
