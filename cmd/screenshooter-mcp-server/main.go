@@ -26,7 +26,8 @@ type Options struct {
 	Config   string `long:"config" description:"Path to config file"`
 	LogLevel string `short:"l" long:"log-level" description:"Log level" default:"info"`
 	Color    string `long:"color" description:"Color output: always|never|auto" default:"auto"`
-	Listen   string `long:"listen" description:"Listen on TCP address (e.g. 127.0.0.1:8080). Requires external MCP-to-HTTP bridge"`
+	Listen   string `long:"listen" description:"Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio' for stdio mode" default:""`
+	Stdio    bool   `long:"stdio" description:"Run in stdio mode (overrides --listen)"`
 }
 
 func main() {
@@ -59,6 +60,9 @@ func main() {
 	if opts.Color != "auto" {
 		cfg.Color = opts.Color
 	}
+	if opts.Listen != "" {
+		cfg.Listen = opts.Listen
+	}
 
 	logging.Init(cfg.LogLevel, cfg.Color)
 
@@ -79,8 +83,17 @@ func main() {
 }
 
 func run(opts *Options, cfg *config.Config) error {
-	if opts.Listen != "" && opts.Listen != "stdio" {
-		logging.Warn().Str("listen", opts.Listen).Msg("Listen mode: requires external MCP<->HTTP bridge")
+	// Use config listen address, or fallback to stdio
+	listen := cfg.Listen
+	if opts.Stdio {
+		listen = "stdio"
+	} else if opts.Listen != "" {
+		listen = opts.Listen
+	}
+
+	if listen != "" && listen != "stdio" {
+		logging.Warn().Str("listen", listen).Msg("Listen mode: requires external MCP<->HTTP bridge")
+		opts.Listen = listen
 		return runHttpBridge(opts)
 	}
 
