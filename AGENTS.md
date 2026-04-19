@@ -24,94 +24,22 @@ When performing git operations, the following rules **MUST** be followed:
 3. Stage with `git add <files>`
 4. Commit with `git commit -s -m "title\n\nbody"`
 
-## Architecture
+### Additional information
 
-```
-┌─────────────────────────────────────────────────────┐
-│                    MCP Client                        │
-│               (Claude Desktop, etc.)                │
-└─────────────────────┬───────────────────────────────┘
-                      │ stdio (MCP over stdin/stdout)
-                      │ or HTTP (--listen flag)
-┌─────────────────────▼───────────────────────────────┐
-│                  MCP Server (Go)                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐  │
-│  │   tools/    │  │   config/  │  │   capture/    │  │
-│  │ capture_*   │──│             │──│   x11/        │  │
-│  │ list_*      │  │             │  │   wayland/    │  │
-│  └─────────────┘  └─────────────┘  └───────────────┘  │
-└─────────────────────────────────────────────────────┘
-```
+You can get additional information about the project, the project structure, the architecture... in these files and directories:
 
-## Key Directories
+* **README.md** : general and important information about the project. This is mostly a developer and user-facing file.
+* **CONTRIBUTING.md**: general information about how to contribute to the project.
+* **SECURITY.md**: general security-related information.
+* **doc/*.md**: other documentation
 
-| Directory | Purpose |
-|-----------|---------|
-| `cmd/screenshooter-mcp-server/` | Main entrypoint |
-| `internal/tools/` | MCP tool implementations |
-| `internal/config/` | Configuration loading |
-| `internal/capture/` | Common types, interfaces |
-| `internal/capture/x11/` | X11 capture implementation |
-| `internal/capture/wayland/` | Wayland capture implementation |
+When editing one of this file, make sure that the content you are modifying is in relation with the subject of the file. If you believe that your modification does not belong to any existing file, you are allowed to create a new file in the _doc/ directory. 
 
 ## Build & Test
 
 ```bash
 eval "$(direnv export bash)" && go build ./cmd/screenshooter-mcp-server    # Build
 eval "$(direnv export bash)" && go test ./...             # Test all
-```
-
-## CLI Options
-
-```bash
-screenshot-mcp-server [options]
-  -v, --version           Show version
-  -h, --help              Show help
-  --config                Path to config file
-  -l, --log-level         Log level: debug|info|warn|error (default: info)
-  --color                 Color output: always|never|auto (default: auto)
-  --listen                Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio'
-  --stdio                 Force stdio mode (overrides --listen)
-```
-
-## Configuration
-
-Configuration is loaded from (in order of priority):
-1. `--config` CLI flag
-2. `SCREENSHOOTER_CONFIG` environment variable
-3. User config: `$XDG_CONFIG_HOME/screenshooter-mcp/config.json` (default: `~/.config/screenshooter-mcp/config.json`)
-4. System config: `/etc/screenshooter-mcp/config.json`
-
-Default config:
-```json
-{
-  "log_level": "info",
-  "color": "auto",
-  "listen": ""
-}
-```
-
-## MCP Tools
-
-| Tool | Description |
-|------|-------------|
-| `list_monitors` | List available monitors with names and aliases |
-| `list_windows` | List open windows with titles and IDs |
-| `capture_screen` | Capture full screen or specific monitor - returns PNG image |
-| `capture_window` | Capture window by title (partial match supported) - returns PNG image |
-| `capture_region` | Capture region from virtual screen - returns PNG image |
-
-## Monitor Naming
-
-Monitors are named using human-readable names with aliases:
-
-```json
-{
-  "name": "1920x1080-left",
-  "aliases": ["DP-1", "monitor-1", "1"],
-  "x": 0, "y": 0,
-  "width": 1920, "height": 1080
-}
 ```
 
 ## Go Development Environment
@@ -133,16 +61,6 @@ On startup, detect X11 vs Wayland:
 
 - **Binary**: Just `go build` the server and distribute the single binary
 - **No bundled runtime**: Vision API support planned for future (user provides their own)
-
-## Dependencies
-
-| Package | Purpose |
-|---------|---------|
-| `github.com/jessevdk/go-flags` | CLI argument parsing |
-| `github.com/modelcontextprotocol/go-sdk` | MCP protocol |
-| `github.com/rs/zerolog` | Structured logging |
-| `github.com/nskaggs/perfuncted` | Screen capture (X11, Wayland, Portal) |
-| `github.com/jezek/xgb` | X11 bindings for multi-monitor support |
 
 ## Package Distribution
 
@@ -215,7 +133,31 @@ import (
 )
 ```
 
-### Testing
+### Formatting
+
+- Always run `gofmt` or `go fmt ./...` before committing
+- Use `gofmt -w .` to format automatically
+- Don't fight gofmt - follow its conventions
+
+### Long Lines
+
+When splitting function arguments across lines, each argument goes on its own line:
+
+```go
+// Good
+value := SomeFunctionCall(
+    theFirstArgument,
+    theSecondArgument,
+    theThirdArgument,
+    somePrivateFunctionCall(),
+    anotherArgument,
+)
+
+// Bad - arguments on same line
+value := SomeFunctionCall(
+    arg1, arg2, arg3,
+)
+```
 
 - Place tests in `*_test.go` files in the same package
 - Use table-driven tests for multiple test cases
