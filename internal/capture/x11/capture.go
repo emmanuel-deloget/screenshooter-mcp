@@ -1,3 +1,18 @@
+// Package x11 provides screen capture functionality for X11.
+//
+// This package implements the capture.ScreenCapture interface for X11 desktop environments.
+// It uses two backend libraries:
+//   - perfuncted/screen: For actual screen capture operations
+//   - perfuncted/window: For window enumeration
+//   - xgb/randr: For multi-monitor detection via RANDR extension
+//
+// The implementation supports:
+//   - Multiple monitor detection using X11 RANDR
+//   - Window enumeration via perfuncted
+//   - Screen/window/region capture via perfuncted
+//
+// Note: This implementation requires an active X11 session with proper
+// permissions to access the display.
 package x11
 
 import (
@@ -14,11 +29,30 @@ import (
 	"github.com/nskaggs/perfuncted/window"
 )
 
+// X11Capture implements capture.ScreenCapture for X11 environments.
+//
+// X11Capture provides screen capture functionality by combining multiple
+// backend libraries. The screen and window operations are delegated to
+// perfuncted, while monitor enumeration uses the xgb library for RANDR access.
+//
+// The capture maintains references to both backends and is responsible for
+// closing them when no longer needed.
 type X11Capture struct {
+	// screenBackend handles actual screen capture operations.
 	screenBackend screen.Screenshotter
+	// windowBackend handles window enumeration and management.
 	windowBackend window.Manager
 }
 
+// NewX11Capture creates a new X11Capture instance.
+//
+// This function initializes both the screen and window backends required
+// for capture operations. Both backends must be successfully opened
+// for the capture to function.
+//
+// Returns the created X11Capture instance, or an error if either
+// backend fails to initialize. On error, any successfully opened
+// backends are closed before returning the error.
 func NewX11Capture() (*X11Capture, error) {
 	logging.Debug().Msg("X11Capture creating screen backend")
 	sc, err := screen.Open()
@@ -42,6 +76,14 @@ func NewX11Capture() (*X11Capture, error) {
 	}, nil
 }
 
+// Close releases resources held by the capture instance.
+//
+// This method closes both the screen and window backends.
+// It is safe to call even if one or both backends failed to initialize -
+// nil checks ensure only initialized backends are closed.
+//
+// Call this method when the capture is no longer needed to prevent
+// resource leaks.
 func (c *X11Capture) Close() {
 	if c.screenBackend != nil {
 		c.screenBackend.Close()
@@ -51,6 +93,18 @@ func (c *X11Capture) Close() {
 	}
 }
 
+// ListMonitors returns all available monitors using X11 RANDR.
+//
+// This method first attempts to enumerate monitors using the X11 RANDR
+// extension, which provides accurate multi-monitor information including
+// position and resolution for each output.
+//
+// If RANDR fails (e.g., extension not available, insufficient permissions),
+// the method falls back to using the screen resolution from perfuncted
+// and creating a single monitor representing the entire screen.
+//
+// Returns a slice of Monitor structs, or an error if both primary and
+// fallback methods fail.
 func (c *X11Capture) ListMonitors() ([]capture.Monitor, error) {
 	logging.Debug().Msg("ListMonitors called")
 
@@ -70,6 +124,15 @@ func (c *X11Capture) ListMonitors() ([]capture.Monitor, error) {
 	return monitors, nil
 }
 
+// fallbackMonitorList provides a single-monitor fallback when RANDR is unavailable.
+//
+// This method is used when the X11 RANDR extension cannot be queried.
+// It creates a monitor description based on the screen resolution
+// from perfuncted, suitable for single-monitor configurations.
+//
+// Returns a single Monitor with the screen dimensions and standard aliases
+// ("1" and "primary"). Returns an error if the resolution cannot
+// be determined.
 func (c *X11Capture) fallbackMonitorList() ([]capture.Monitor, error) {
 	width, height, err := screen.Resolution(c.screenBackend)
 	if err != nil {
@@ -88,6 +151,14 @@ func (c *X11Capture) fallbackMonitorList() ([]capture.Monitor, error) {
 	}, nil
 }
 
+// ListWindows returns all open windows.
+//
+// This method delegates to the perfuncted window backend to enumerate
+// visible windows. The window list includes all windows that have titles
+// and are visible on the screen.
+//
+// Returns a slice of Window structs. The slice is empty if no windows are
+// found or if window enumeration fails.
 func (c *X11Capture) ListWindows() ([]capture.Window, error) {
 	logging.Debug().Msg("ListWindows called")
 
@@ -113,6 +184,17 @@ func (c *X11Capture) ListWindows() ([]capture.Window, error) {
 	return windows, nil
 }
 
+// CaptureScreen captures a specific monitor or the entire virtual screen.
+//
+// If the monitor argument is empty, all monitors are captured as a single combined
+// image using CaptureAllScreens. If a monitor name or alias is provided,
+// only that monitor's area is captured.
+//
+// The monitor string is matched against Monitor.Name first, then Monitor.Aliases.
+// Match is case-sensitive for name, case-insensitive for aliases.
+//
+// Returns the captured image, or an error if the monitor is not found
+// or the capture fails.
 func (c *X11Capture) CaptureScreen(monitor string) (image.Image, error) {
 	logging.Debug().Str("monitor", monitor).Msg("CaptureScreen called")
 
@@ -149,6 +231,12 @@ func (c *X11Capture) CaptureScreen(monitor string) (image.Image, error) {
 	return img, nil
 }
 
+// containsAlias checks if an alias matches the target string.
+//
+// This is a case-insensitive comparison, useful for allowing
+// users to specify monitors by various identifiers.
+//
+// Returns true if an alias matches, false otherwise.
 func containsAlias(aliases []string, target string) bool {
 	for _, a := range aliases {
 		if a == target {
@@ -158,6 +246,17 @@ func containsAlias(aliases []string, target string) bool {
 	return false
 }
 
+// CaptureWindow captures a window by its title.
+//
+// The title argument is matched case-insensitively using substring matching.
+// If the window title contains the specified string, it is considered a match.
+//
+// If multiple windows match the title, an error is returned to prevent ambiguity.
+// If no window matches, an error is returned.
+//
+// The captured image includes the window's entire visible area including
+// any window decorations (borders, title bar) depending on the backend.
+// Coordinates are relative to the virtual screen.
 func (c *X11Capture) CaptureWindow(title string) (image.Image, error) {
 	logging.Debug().Str("title", title).Msg("CaptureWindow called")
 
@@ -191,6 +290,14 @@ func (c *X11Capture) CaptureWindow(title string) (image.Image, error) {
 	return img, nil
 }
 
+// CaptureRegion captures an arbitrary rectangular region.
+//
+// The x and y arguments specify the top-left corner coordinates.
+// The w and h arguments specify the width and height.
+// Coordinates are in the virtual screen space.
+//
+// If the specified region extends beyond the screen bounds, it is clipped
+// to the valid area. Returns an error if the capture fails.
 func (c *X11Capture) CaptureRegion(x, y, w, h int) (image.Image, error) {
 	logging.Debug().Int("x", x).Int("y", y).Int("width", w).Int("height", h).Msg("CaptureRegion called")
 
@@ -204,6 +311,14 @@ func (c *X11Capture) CaptureRegion(x, y, w, h int) (image.Image, error) {
 	return img, nil
 }
 
+// CaptureAllScreens captures all monitors as a single combined image.
+//
+// This method first enumerates all monitors, then calculates the bounding
+// rectangle that encompasses all monitors. The entire virtual screen is captured
+// as one image.
+//
+// Returns the combined image, or an error if no monitors are found or
+// the capture fails.
 func (c *X11Capture) CaptureAllScreens() (image.Image, error) {
 	logging.Debug().Msg("CaptureAllScreens called")
 
@@ -248,10 +363,22 @@ func (c *X11Capture) CaptureAllScreens() (image.Image, error) {
 	return img, nil
 }
 
+// x11Conn provides a low-level connection to X11 for RANDR operations.
+//
+// x11Conn wraps the xgb connection and provides methods for querying
+// display configuration. This is separate from the screen capture
+// backend because RANDR queries require direct X11 access.
 type x11Conn struct {
 	conn *xgb.Conn
 }
 
+// newX11Conn creates a new X11 connection.
+//
+// The displayName argument specifies the X11 display to connect to.
+// If empty, the default display (from DISPLAY environment variable)
+// is used.
+//
+// Returns the connection, or an error if connection fails.
 func newX11Conn(displayName string) (*x11Conn, error) {
 	var conn *xgb.Conn
 	var err error
@@ -266,6 +393,10 @@ func newX11Conn(displayName string) (*x11Conn, error) {
 	return &x11Conn{conn: conn}, nil
 }
 
+// Close closes the X11 connection.
+//
+// This method disconnects from the X11 server. After Close is called,
+// the connection should not be used for further operations.
 func (c *x11Conn) Close() error {
 	if c.conn != nil {
 		c.conn.Close()
@@ -273,6 +404,22 @@ func (c *x11Conn) Close() error {
 	return nil
 }
 
+// getMonitors queries X11 RANDR for monitor information.
+//
+// This method enumerates monitors by querying the RANDR extension for
+// connected outputs and their CRTC (Cathode Ray Tube Controller) configurations.
+//
+// Steps:
+//  1. Initialize RANDR extension
+//  2. Query screen resources for output list
+//  3. For each output, get output info and CRTC
+//  4. Build Monitor structs with position and aliases
+//
+// The position alias (left, right, up, down, middle) is computed relative
+// to the primary monitor at position (0, 0).
+//
+// Returns a slice of Monitor structs, or an error if RANDR is unavailable
+// or returns no monitors.
 func (c *x11Conn) getMonitors() ([]capture.Monitor, error) {
 	if err := randr.Init(c.conn); err != nil {
 		return nil, fmt.Errorf("randr not available: %w", err)
@@ -285,8 +432,8 @@ func (c *x11Conn) getMonitors() ([]capture.Monitor, error) {
 	}
 
 	type rawMonitor struct {
-		name       string
-		x, y       int16
+		name          string
+		x, y          int16
 		width, height uint16
 	}
 
@@ -307,9 +454,9 @@ func (c *x11Conn) getMonitors() ([]capture.Monitor, error) {
 		}
 
 		rawMonitors = append(rawMonitors, rawMonitor{
-			name:  string(info.Name),
-			x:     crtcInfo.X,
-			y:     crtcInfo.Y,
+			name:   string(info.Name),
+			x:      crtcInfo.X,
+			y:      crtcInfo.Y,
 			width:  crtcInfo.Width,
 			height: crtcInfo.Height,
 		})
@@ -355,7 +502,7 @@ func (c *x11Conn) getMonitors() ([]capture.Monitor, error) {
 		height := int(rm.height)
 
 		monitors = append(monitors, capture.Monitor{
-			Name:    rm.name,
+			Name: rm.name,
 			Aliases: []string{
 				fmt.Sprintf("%s-%dx%d", position, width, height),
 				rm.name,

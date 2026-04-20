@@ -1,3 +1,19 @@
+// Package tools provides the MCP tool implementations for screen capture operations.
+//
+// This package bridges the MCP protocol with the capture package, exposing the screen capture
+// functionality as MCP tools. Each tool corresponds to a specific capture operation:
+//   - ListMonitors: Enumerate available monitors
+//   - ListWindows: Enumerate open windows
+//   - CaptureScreen: Capture all or specific monitors
+//   - CaptureWindow: Capture a specific window by title
+//   - CaptureRegion: Capture an arbitrary screen region
+//
+// The tools accept context.Context for cancellation support, though currently
+// the underlying capture operations do not support context cancellation.
+// The context is included for future extensibility and API consistency.
+//
+// Image encoding is handled internally - all capture functions return PNG-encoded
+// bytes ready for transmission to MCP clients.
 package tools
 
 import (
@@ -11,24 +27,74 @@ import (
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/capture"
 )
 
+// Tools provides MCP tool implementations for screen capture.
+//
+// Tools wraps a ScreenCapture implementation and exposes its functionality
+// as MCP-compatible operations. The actual capture logic is delegated
+// to the underlying ScreenCapture implementation, which handles the platform-
+// specific details (X11 vs Wayland).
+//
+// The Tools struct is safe for concurrent use, as the capture implementation
+// typically handles concurrency internally. However, concurrent capture
+// operations may be serialized depending on the backend.
 type Tools struct {
 	capture capture.ScreenCapture
 }
 
+// NewTools creates a new Tools instance with the given capture implementation.
+//
+// The capture argument is the platform-specific ScreenCapture implementation
+// that handles the actual screen capture operations. This allows the tools
+// to work identically regardless of the underlying desktop environment.
+//
+// Example:
+//
+//	capt, err := x11.NewX11Capture()
+//	if err != nil {
+//	    return nil, err
+//	}
+//	tools := NewTools(capt)
 func NewTools(c capture.ScreenCapture) *Tools {
 	return &Tools{
 		capture: c,
 	}
 }
 
+// ListMonitors returns a list of all available monitors.
+//
+// This function delegates to the underlying ScreenCapture implementation.
+// The monitor list includes each monitor's name, aliases, position, and
+// dimensions in the virtual screen coordinate space.
+//
+// Returns a slice of Monitor structs, or an error if the operation fails.
+// The slice may be empty if no monitors are detected.
 func (t *Tools) ListMonitors(ctx context.Context) ([]capture.Monitor, error) {
 	return t.capture.ListMonitors()
 }
 
+// ListWindows returns a list of all open windows.
+//
+// This function delegates to the underlying ScreenCapture implementation.
+// The window list includes each window's ID, title, position, and dimensions.
+//
+// Returns a slice of Window structs, or an error if the operation fails.
+// The slice is empty if no windows are detected or if the window manager is not available.
+// Some implementations may not support window enumeration and will return an error.
 func (t *Tools) ListWindows(ctx context.Context) ([]capture.Window, error) {
 	return t.capture.ListWindows()
 }
 
+// CaptureScreen captures the full screen or a specific monitor.
+//
+// The monitor argument specifies which monitor to capture. If empty, all monitors
+// are captured as a single combined image. If a monitor name or alias is
+// provided, only that monitor is captured.
+//
+// Monitor matching is case-insensitive. The function tries exact name match
+// first, then alias match.
+//
+// Returns PNG-encoded image data, or an error if the capture fails.
+// The returned data is ready for transmission as MCP ImageContent.
 func (t *Tools) CaptureScreen(ctx context.Context, monitor string) ([]byte, error) {
 	img, err := t.capture.CaptureScreen(monitor)
 	if err != nil {
@@ -37,6 +103,16 @@ func (t *Tools) CaptureScreen(ctx context.Context, monitor string) ([]byte, erro
 	return encodeImage(img)
 }
 
+// CaptureWindow captures a window by its title.
+//
+// The title argument specifies the window to capture. Matching is case-
+// insensitive and uses substring matching - if the window title contains
+// the specified string, it is considered a match.
+//
+// Returns an error if multiple windows match (to prevent ambiguity) or if no
+// window matches. The error message includes the partial title used.
+//
+// Returns PNG-encoded image data, or an error if the capture fails.
 func (t *Tools) CaptureWindow(ctx context.Context, title string) ([]byte, error) {
 	img, err := t.capture.CaptureWindow(title)
 	if err != nil {
@@ -45,6 +121,16 @@ func (t *Tools) CaptureWindow(ctx context.Context, title string) ([]byte, error)
 	return encodeImage(img)
 }
 
+// CaptureRegion captures an arbitrary rectangular region of the screen.
+//
+// The x and y arguments specify the top-left corner coordinates.
+// The w and h arguments specify the width and height.
+// Coordinates are relative to the virtual screen origin (0, 0).
+//
+// If the specified region extends beyond the screen bounds, it is clipped
+// to the valid screen area.
+//
+// Returns PNG-encoded image data, or an error if the capture fails.
 func (t *Tools) CaptureRegion(ctx context.Context, x, y, w, h int) ([]byte, error) {
 	img, err := t.capture.CaptureRegion(x, y, w, h)
 	if err != nil {
@@ -53,6 +139,13 @@ func (t *Tools) CaptureRegion(ctx context.Context, x, y, w, h int) ([]byte, erro
 	return encodeImage(img)
 }
 
+// encodeImage converts an image.Image to PNG-encoded bytes.
+//
+// This is an internal helper function used by all capture methods.
+// It encodes the image to PNG format, which is the standard format for
+// MCP ImageContent transmissions.
+//
+// Returns the PNG-encoded data, or an error if encoding fails.
 func encodeImage(img image.Image) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {
@@ -61,12 +154,36 @@ func encodeImage(img image.Image) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// ToolResult represents the result of an MCP tool execution.
+//
+// This struct provides a standardized format for tool results,
+// with separate fields for success status, data, and error information.
+// It is used internally by the tools package for consistent result formatting.
+//
+// The JSON structure allows easy parsing by MCP clients:
+//   - On success: Success is true, Data contains JSON-encoded result
+//   - On error: Success is false, Error contains error message
 type ToolResult struct {
-	Success bool            `json:"success"`
-	Data    json.RawMessage `json:"data,omitempty"`
-	Error   string          `json:"error,omitempty"`
+	// Success indicates whether the tool executed successfully.
+	// True for successful execution, false for errors.
+	Success bool `json:"success"`
+
+	// Data contains the JSON-encoded result data.
+	// Only populated when Success is true.
+	Data json.RawMessage `json:"data,omitempty"`
+
+	// Error contains an error message string.
+	// Only populated when Success is false.
+	Error string `json:"error,omitempty"`
 }
 
+// SuccessResult creates a successful tool result.
+//
+// This helper function wraps arbitrary data into a ToolResult struct
+// with Success set to true. The data is JSON-encoded and stored
+// in the Data field.
+//
+// Returns an error if the data cannot be JSON-encoded.
 func SuccessResult(data interface{}) (*ToolResult, error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -78,6 +195,13 @@ func SuccessResult(data interface{}) (*ToolResult, error) {
 	}, nil
 }
 
+// ErrorResult creates an error tool result.
+//
+// This helper function creates a ToolResult struct with Success set to
+// false and the Error field set to the provided error message.
+//
+// The error parameter should be a human-readable error message
+// suitable for display to the user.
 func ErrorResult(err string) *ToolResult {
 	return &ToolResult{
 		Success: false,

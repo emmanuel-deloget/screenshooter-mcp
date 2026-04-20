@@ -1,3 +1,16 @@
+// Package wayland provides screen capture functionality for Wayland.
+//
+// This package implements the capture.ScreenCapture interface for Wayland desktop environments.
+// It uses the perfuncted library, which provides portal-based screen capture
+// that works with modern Wayland compositors.
+//
+// The implementation supports:
+//   - Screen capture via libportal (portal-based, compositor-agnostic)
+//   - Window enumeration via perfuncted
+//   - Monitor detection (limited depending on compositor support)
+//
+// Note: This implementation requires the XDG desktop portal to be available
+// and properly configured for screen capture.
 package wayland
 
 import (
@@ -11,11 +24,35 @@ import (
 	"github.com/nskaggs/perfuncted/window"
 )
 
+// WaylandCapture implements capture.ScreenCapture for Wayland environments.
+//
+// WaylandCapture provides screen capture functionality using the perfuncted
+// library, which uses the XDG desktop portal for screen capture. This approach
+// delegates to the compositor via DBus, providing a consistent API across
+// different Wayland compositors (GNOME Shell, KDE Plasma, Sway, etc.).
+//
+// The capture maintains references to both backends and is responsible for
+// closing them when no longer needed.
 type WaylandCapture struct {
+	// screenBackend handles actual screen capture operations.
 	screenBackend screen.Screenshotter
+	// windowBackend handles window enumeration and management.
 	windowBackend window.Manager
 }
 
+// NewWaylandCapture creates a new WaylandCapture instance.
+//
+// This function initializes both the screen and window backends required
+// for capture operations. Both backends must be successfully opened
+// for the capture to function.
+//
+// The screen backend uses the desktop portal via DBus, so it may prompt
+// the user for permission on first use depending on the compositor's
+// permission settings.
+//
+// Returns the created WaylandCapture instance, or an error if either
+// backend fails to initialize. On error, any successfully opened
+// backends are closed before returning the error.
 func NewWaylandCapture() (*WaylandCapture, error) {
 	logging.Debug().Msg("WaylandCapture creating screen backend")
 	sc, err := screen.Open()
@@ -39,6 +76,14 @@ func NewWaylandCapture() (*WaylandCapture, error) {
 	}, nil
 }
 
+// Close releases resources held by the capture instance.
+//
+// This method closes both the screen and window backends.
+// It is safe to call even if one or both backends failed to initialize -
+// nil checks ensure only initialized backends are closed.
+//
+// Call this method when the capture is no longer needed to prevent
+// resource leaks.
 func (c *WaylandCapture) Close() {
 	if c.screenBackend != nil {
 		c.screenBackend.Close()
@@ -48,6 +93,18 @@ func (c *WaylandCapture) Close() {
 	}
 }
 
+// ListMonitors returns all available monitors.
+//
+// This method attempts to get monitor information from Wayland, but due
+// to limited compositor support in Wayland, it often falls back to single-monitor
+// detection based on screen resolution.
+//
+// The portal-based capture does not provide reliable multi-monitor enumeration,
+// so this implementation returns a single monitor matching the screen resolution.
+// This is generally sufficient for most capture operations.
+//
+// Returns a slice of Monitor structs. The slice contains a single monitor
+// representing the entire screen.
 func (c *WaylandCapture) ListMonitors() ([]capture.Monitor, error) {
 	logging.Debug().Msg("ListMonitors called")
 
@@ -60,6 +117,13 @@ func (c *WaylandCapture) ListMonitors() ([]capture.Monitor, error) {
 	return monitors, nil
 }
 
+// getMonitorsFromWayland queries the screen backend for monitor information.
+//
+// Currently, this function returns a single monitor based on the screen
+// resolution. Comprehensive multi-monitor support via Wayland is not
+// available through the portal API.
+//
+// Returns a single Monitor with standard aliases.
 func (c *WaylandCapture) getMonitorsFromWayland() ([]capture.Monitor, error) {
 	width, height, err := screen.Resolution(c.screenBackend)
 	if err != nil {
@@ -78,6 +142,10 @@ func (c *WaylandCapture) getMonitorsFromWayland() ([]capture.Monitor, error) {
 	}, nil
 }
 
+// fallbackMonitorList provides a single-monitor fallback.
+//
+// This is identical to getMonitorsFromWayland and exists for API compatibility.
+// Returns a single Monitor based on screen resolution.
 func (c *WaylandCapture) fallbackMonitorList() ([]capture.Monitor, error) {
 	width, height, err := screen.Resolution(c.screenBackend)
 	if err != nil {
@@ -96,6 +164,14 @@ func (c *WaylandCapture) fallbackMonitorList() ([]capture.Monitor, error) {
 	}, nil
 }
 
+// ListWindows returns all open windows.
+//
+// This method delegates to the perfuncted window backend to enumerate
+// visible windows. The window list includes all windows that have titles
+// and are visible on the screen.
+//
+// Returns a slice of Window structs. The slice is empty if no windows are
+// found or if window enumeration fails.
 func (c *WaylandCapture) ListWindows() ([]capture.Window, error) {
 	logging.Debug().Msg("ListWindows called")
 
@@ -121,6 +197,21 @@ func (c *WaylandCapture) ListWindows() ([]capture.Window, error) {
 	return windows, nil
 }
 
+// CaptureScreen captures a specific monitor or the entire virtual screen.
+//
+// If the monitor argument is empty, all monitors are captured as a single combined
+// image using CaptureAllScreens. If a monitor name or alias is provided,
+// only that monitor's area is captured.
+//
+// The monitor string is matched against Monitor.Name first, then Monitor.Aliases.
+// Match is case-sensitive for name, case-insensitive for aliases.
+//
+// Note: Due to limited multi-monitor support in Wayland, specifying a
+// non-existent monitor may succeed with unexpected results depending on
+// the compositor.
+//
+// Returns the captured image, or an error if the monitor is not found
+// or the capture fails.
 func (c *WaylandCapture) CaptureScreen(monitor string) (image.Image, error) {
 	logging.Debug().Str("monitor", monitor).Msg("CaptureScreen called")
 
@@ -157,6 +248,12 @@ func (c *WaylandCapture) CaptureScreen(monitor string) (image.Image, error) {
 	return img, nil
 }
 
+// containsAlias checks if an alias matches the target string.
+//
+// This is a case-insensitive comparison, useful for allowing
+// users to specify monitors by various identifiers.
+//
+// Returns true if an alias matches, false otherwise.
 func containsAlias(aliases []string, target string) bool {
 	for _, a := range aliases {
 		if a == target {
@@ -166,6 +263,16 @@ func containsAlias(aliases []string, target string) bool {
 	return false
 }
 
+// CaptureWindow captures a window by its title.
+//
+// The title argument is matched case-insensitively using substring matching.
+// If the window title contains the specified string, it is considered a match.
+//
+// If multiple windows match the title, an error is returned to prevent ambiguity.
+// If no window matches, an error is returned.
+//
+// The captured image includes the window's entire visible area.
+// Coordinates are relative to the virtual screen.
 func (c *WaylandCapture) CaptureWindow(title string) (image.Image, error) {
 	logging.Debug().Str("title", title).Msg("CaptureWindow called")
 
@@ -199,6 +306,14 @@ func (c *WaylandCapture) CaptureWindow(title string) (image.Image, error) {
 	return img, nil
 }
 
+// CaptureRegion captures an arbitrary rectangular region.
+//
+// The x and y arguments specify the top-left corner coordinates.
+// The w and h arguments specify the width and height.
+// Coordinates are in the virtual screen space.
+//
+// If the specified region extends beyond the screen bounds, it is clipped
+// to the valid area. Returns an error if the capture fails.
 func (c *WaylandCapture) CaptureRegion(x, y, w, h int) (image.Image, error) {
 	logging.Debug().Int("x", x).Int("y", y).Int("width", w).Int("height", h).Msg("CaptureRegion called")
 
@@ -212,6 +327,14 @@ func (c *WaylandCapture) CaptureRegion(x, y, w, h int) (image.Image, error) {
 	return img, nil
 }
 
+// CaptureAllScreens captures all monitors as a single combined image.
+//
+// This method first enumerates all monitors, then calculates the bounding
+// rectangle that encompasses all monitors. The entire virtual screen is captured
+// as one image.
+//
+// Returns the combined image, or an error if no monitors are found or
+// the capture fails.
 func (c *WaylandCapture) CaptureAllScreens() (image.Image, error) {
 	logging.Debug().Msg("CaptureAllScreens called")
 

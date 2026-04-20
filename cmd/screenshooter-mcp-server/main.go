@@ -1,6 +1,53 @@
 // Copyright 2025 Emmanuel Deloget. All rights reserved.
 // Use of this source code is governed by the license that can be found in the LICENSE file.
 
+// Package main provides the MCP server implementation for capturing screenshots on Linux.
+//
+// This server implements the Model Context Protocol (MCP) and exposes tools for
+// capturing screens, windows, and regions on Linux systems running either X11 or
+// Wayland desktop environments. It can operate in two modes:
+//
+//   - stdio mode: Communicates with an MCP client via standard input/output
+//   - HTTP mode: Exposes an HTTP endpoint for MCP client connections
+//
+// Configuration is loaded from JSON files, following XDG Base Directory specification.
+// The server will look for configuration in the following locations (in order of precedence):
+//
+//  1. Path specified via --config command-line flag
+//  2. Path in SCREENSHOOTER_CONFIG environment variable
+//  3. $XDG_CONFIG_HOME/screenshooter-mcp/config.json (or ~/.config/screenshooter-mcp/config.json)
+//  4. /etc/screenshooter-mcp/config.json
+//
+// Example config.json:
+//
+//	{
+//	  "log_level": "info",
+//	  "color": "auto",
+//	  "listen": "127.0.0.1:11777"
+//	}
+//
+// Available tools:
+//
+//   - list_monitors: Lists all available monitors with their names and aliases
+//   - list_windows: Lists all open windows with their titles and IDs
+//   - capture_screen: Captures the full screen or a specific monitor
+//   - capture_window: Captures a specific window by its title (partial match supported)
+//   - capture_region: Captures a region from the virtual screen
+//
+// Usage:
+//
+//	# Run in stdio mode (default)
+//	screenshooter-mcp-server
+//
+//	# Run as HTTP server
+//	screenshooter-mcp-server --listen 127.0.0.1:11777
+//	screenshooter-mcp-server --stdio
+//
+//	# With custom config
+//	screenshooter-mcp-server --config /path/to/config.json
+//
+//	# With logging
+//	screenshooter-mcp-server --log-level debug
 package main
 
 import (
@@ -20,6 +67,34 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+// Options defines the command-line flags and configuration overrides accepted by the server.
+//
+// The Options struct uses the go-flags library to parse command-line arguments.
+// Each field corresponds to a command-line flag that can be passed when starting
+// the server. Fields marked with jsonschema tags are used for generating
+// JSON Schema documentation for the MCP tools.
+//
+// The --config flag allows specifying a custom path to a configuration file.
+// If not provided, configuration is loaded from standard XDG locations.
+//
+// The --log-level flag controls the verbosity of logging output. Valid values are:
+//   - debug: Most verbose, includes detailed debug information
+//   - info: Default, includes operational information
+//   - warn: Only warnings and errors
+//   - error: Only errors
+//
+// The --color flag controls whether the logger uses colored output. Valid values are:
+//   - always: Always use ANSI color codes
+//   - never: Never use color codes
+//   - auto: Detect if terminal supports colors (default)
+//
+// The --listen flag specifies the TCP address to listen on for HTTP mode.
+// Use "stdio" as the value to communicate via standard input/output instead.
+// The HTTP mode requires an external MCP<->HTTP bridge to convert between
+// HTTP and the MCP stdio protocol.
+//
+// The --stdio flag is a convenience flag that forces stdio mode, equivalent
+// to setting --listen to "stdio". It overrides any --listen value.
 type Options struct {
 	Version  bool   `short:"v" long:"version" description:"Show version"`
 	Help     bool   `short:"h" long:"help" description:"Show help"`
@@ -82,6 +157,28 @@ func main() {
 	}
 }
 
+// run starts the MCP server in stdio mode.
+//
+// This function is the main entry point for running the server. It detects the current
+// desktop environment (X11 or Wayland), creates an appropriate screen capture backend,
+// registers the MCP tools, and starts the server running on stdio transport.
+//
+// The detection process checks the XDG_SESSION_TYPE environment variable first, then falls
+// back to checking for DISPLAY (X11) or WAYLAND_DISPLAY (Wayland) environment variables.
+// If neither desktop environment is detected, an error is returned.
+//
+// The function creates platform-specific capture implementations:
+//   - For X11: Uses xgb for RANDR monitor enumeration and perfuncted for capture
+//   - For Wayland: Uses perfuncted (portal-based) for capture
+//
+// Once the capture backend is created, all five MCP tools are registered:
+// list_monitors, list_windows, capture_screen, capture_window, and capture_region.
+// The server then runs indefinitely, processing MCP requests via stdio.
+//
+// Returns an error if:
+//   - The desktop environment cannot be detected
+//   - The capture backend cannot be created
+//   - The server fails to run
 func run(opts *Options, cfg *config.Config) error {
 	// Use config listen address, or fallback to stdio
 	listen := cfg.Listen
@@ -140,6 +237,31 @@ func run(opts *Options, cfg *config.Config) error {
 	return server.Run(context.Background(), &mcp.StdioTransport{})
 }
 
+// runHttpBridge starts the MCP server in HTTP mode.
+//
+// This function runs the server as an HTTP server, using the MCP SDK's
+// StreamableHTTPHandler to handle client connections. The server listens
+// on the TCP address specified in opts.Listen.
+//
+// HTTP mode is useful when the MCP client cannot communicate via stdio,
+// such as when running the server as a remote service. However, MCP
+// clients typically expect stdio communication, so HTTP mode requires
+// an external MCP<->HTTP bridge to translate between HTTP and the MCP protocol.
+//
+// The detection of the desktop environment and creation of the capture backend
+// follows the same process as the stdio mode (see run function). Once the
+// server is configured, it starts listening on the specified address
+// and handles incoming HTTP requests.
+//
+// Common use cases:
+//   - Running behind a reverse proxy
+//   - Containerized deployments
+//   - Remote MCP server access
+//
+// Returns an error if:
+//   - The desktop environment cannot be detected
+//   - The capture backend cannot be created
+//   - The HTTP server fails to start or listen
 func runHttpBridge(opts *Options) error {
 	logging.Info().Str("listen", opts.Listen).Msg("Starting HTTP server")
 
@@ -185,16 +307,55 @@ func runHttpBridge(opts *Options) error {
 	return http.ListenAndServe(opts.Listen, handler)
 }
 
+// listMonitorsInput defines the input parameters for the list_monitors MCP tool.
+//
+// This struct is intentionally empty because list_monitors takes no parameters.
+// It exists as a placeholder for the MCP tool schema definition.
 type listMonitorsInput struct{}
 
+// captureScreenInput defines the input parameters for the capture_screen MCP tool.
+//
+// The monitor field is optional. If specified, it identifies which monitor
+// to capture. If omitted or empty, the entire virtual screen (all monitors)
+// is captured.
+//
+// The value can be:
+//   - A monitor name (e.g., "DP-1" from X11 RANDR)
+//   - A monitor alias (e.g., "1", "primary", "middle-1920x1080")
+//   - An empty string to capture all screens
+//
+// When matching aliases, the server performs case-insensitive comparison.
+// If no monitor matches the specified value, an error is returned.
 type captureScreenInput struct {
 	Monitor string `json:"monitor,omitempty" jsonschema:"optional monitor name or alias; captures all if not specified"`
 }
 
+// captureWindowInput defines the input parameters for the capture_window MCP tool.
+//
+// The title field specifies the window to capture. The match is performed using
+// case-insensitive substring matching - if the title contains the specified
+// string, the window is considered a match.
+//
+// If multiple windows match the specified title, an error is returned to
+// prevent ambiguity. In this case, specify a more unique title string.
+//
+// If no window matches the specified title, an error is returned.
 type captureWindowInput struct {
 	Title string `json:"title" jsonschema:"window title to capture (partial match supported)"`
 }
 
+// captureRegionInput defines the input parameters for the capture_region MCP tool.
+//
+// The x and y fields specify the coordinates of the top-left corner of the
+// region to capture, relative to the virtual screen origin (0, 0).
+//
+// The width and height fields specify the dimensions of the region to capture.
+// If the specified region extends beyond the virtual screen bounds, it is clipped
+// to the screen boundaries.
+//
+// Coordinates follow the standard display coordinate system where (0, 0) is
+// the top-left corner of the primary monitor. X increases to the right, Y increases
+// downward.
 type captureRegionInput struct {
 	X      int `json:"x" jsonschema:"X coordinate of the top-left corner"`
 	Y      int `json:"y" jsonschema:"Y coordinate of the top-left corner"`
@@ -202,6 +363,31 @@ type captureRegionInput struct {
 	Height int `json:"height" jsonschema:"height of the region"`
 }
 
+// registerTools registers all MCP tools with the server.
+//
+// This function creates and registers five MCP tools with the MCP server:
+//  1. list_monitors - Lists all available monitors with their names and aliases
+//  2. list_windows - Lists all open windows with their titles and IDs
+//  3. capture_screen - Captures the full screen or a specific monitor
+//  4. capture_window - Captures a specific window by its title
+//  5. capture_region - Captures a region from the virtual screen
+//
+// Each tool is wrapped with error handling that:
+//   - Logs the tool call with parameters for debugging
+//   - Converts errors to user-friendly error messages
+//   - Returns appropriate MCP content (text for errors, image for success)
+//
+// The tools use the ScreenCapture interface from the capture package, which
+// provides a unified API regardless of the underlying desktop environment
+// (X11 or Wayland). This abstraction allows the MCP tools to work
+// identically regardless of which backend is in use.
+//
+// Tool result format:
+//   - On success: Returns image data as ImageContent (PNG format) or JSON text
+//   - On error: Returns error message as TextContent with IsError flag set
+//
+// The function logs at info level the names of all registered tools for
+// verification purposes.
 func registerTools(server *mcp.Server, t *tools.Tools) {
 	toolNames := []string{}
 
