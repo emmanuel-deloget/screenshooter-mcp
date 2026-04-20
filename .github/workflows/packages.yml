@@ -54,7 +54,7 @@ jobs:
           tar -czvf screenshooter-mcp-${{ matrix.arch }}-stdio.tar.gz screenshooter-mcp-${{ matrix.arch }}-stdio/
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: alpine-${{ matrix.arch }}
           path: |
@@ -141,7 +141,7 @@ jobs:
           mv screenshooter-mcp-stdio_*_${{ matrix.arch }}.deb screenshooter-mcp-stdio_${{ matrix.arch }}.deb
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: debian-${{ matrix.arch }}
           path: |
@@ -225,7 +225,7 @@ jobs:
             usr/bin/=/usr/bin/
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fedora-${{ matrix.arch }}
           path: |
@@ -308,7 +308,7 @@ jobs:
             usr/bin/=/usr/bin/
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: arch-${{ matrix.arch }}
           path: |
@@ -393,7 +393,7 @@ jobs:
             /usr/local/bin/=/usr/local/bin/
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: alpine-apk-${{ matrix.arch }}
           path: |
