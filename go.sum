@@ -16,8 +16,8 @@ github.com/mattn/go-isatty v0.0.21 h1:xYae+lCNBP7QuW4PUnNG61ffM4hVIfm+zUzDuSzYLG
 github.com/mattn/go-isatty v0.0.21/go.mod h1:ZXfXG4SQHsB/w3ZeOYbR0PrPwLy+n6xiMrJlRFqopa4=
 github.com/modelcontextprotocol/go-sdk v1.5.0 h1:CHU0FIX9kpueNkxuYtfYQn1Z0slhFzBZuq+x6IiblIU=
 github.com/modelcontextprotocol/go-sdk v1.5.0/go.mod h1:gggDIhoemhWs3BGkGwd1umzEXCEMMvAnhTrnbXJKKKA=
-github.com/nskaggs/perfuncted v0.1.3 h1:+u2tCIzhw1wH/z0uLVuKd7CPRJrkvoIgDk52cTdBvE4=
-github.com/nskaggs/perfuncted v0.1.3/go.mod h1:Oi1G6ry48AxgAb7i+64QQnW+C1FBnb6ntl8sKVxXiYU=
+github.com/nskaggs/perfuncted v0.1.6 h1:Lh3NS/KelU8AvDo5xbB0dfuOhtk+1G5l1Hzk5ZQJI/A=
+github.com/nskaggs/perfuncted v0.1.6/go.mod h1:EE4I3wIas4ZE3F5931j2Z0wWW2LM6vRJAPvT5DTux70=
 github.com/rs/zerolog v1.35.0 h1:VD0ykx7HMiMJytqINBsKcbLS+BJ4WYjz+05us+LRTdI=
 github.com/rs/zerolog v1.35.0/go.mod h1:EjML9kdfa/RMA7h/6z6pYmq1ykOuA8/mjWaEvGI+jcw=
 github.com/segmentio/asm v1.1.3 h1:WM03sfUOENvvKexOLp+pCqgb/WDjsi7EK8gIsICtzhc=
