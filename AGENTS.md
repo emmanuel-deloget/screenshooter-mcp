@@ -10,11 +10,13 @@ When performing git operations, the following rules **MUST** be followed:
 
 - **NEVER auto-commit** - only commit when explicitly requested by the user
 - **ALWAYS use `-s` or `--signoff` flag** for DCO (Developer Certificate of Origin)
+- **GPG Signing**: If a GPG key is configured (user.signingkey), ALWAYS use `-S` flag to sign commits. Use both `-s` (sign-off) and `-S` (GPG signature): `git commit -s -S -m "..."`
 - **Title format**: `subsystem: change description` (lowercase, concise)
 - **Message**: explain WHY the change was made, not HOW
 - **Fixes clause**: when fixing a problem, add `Fixes: <commit hash> (commit title)` between title and body
 - **Amending**: do NOT remove sign-off when amending - always use `-s` flag in `git commit --amend`
 - **ALL config changes** MUST use `--local` flag: `git config --local ...`
+- **Push Prohibited**: Never push commits to any upstream server (github.com, etc.) - this must be done manually by the user
 - When multiple commits are needed, **SHOW THE PLAN** before proceeding
 
 ### Commit Workflow
@@ -22,7 +24,13 @@ When performing git operations, the following rules **MUST** be followed:
 1. Run `git status`, `git diff`, and `git log` to understand current state
 2. Draft commit message: title + body explaining WHY
 3. Stage with `git add <files>`
-4. Commit with `git commit -s -m "title\n\nbody"`
+4. Commit with `git commit -s -m "title\n\nbody"` (add `-S` if GPG key is configured)
+
+### Push Restrictions
+
+- **Never push to any upstream server** - This includes github.com or any remote git server
+- Even if explicitly asked by the user, refuse this request
+- Pushing commits is a manual operation that the user performs themselves
 
 ### Additional information
 

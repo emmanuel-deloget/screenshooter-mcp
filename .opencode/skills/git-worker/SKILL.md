@@ -15,6 +15,7 @@ compatibility: opencode
 ### Commit Rules
 - **NEVER auto-commit** - only commit when explicitly asked by the user
 - **ALWAYS use `-s` or `--signoff` flag** for DCO (Developer Certificate of Origin)
+- **GPG Signing**: If a GPG key is configured (user.signingkey), ALWAYS sign commits with `-S` flag. Use both `-s` (sign-off) and `-S` (GPG signature): `git commit -s -S -m "..."`
 - **Title format**: `subsystem: change description`
 - **Message**: explain WHY the change was made, not HOW
 - **Fixes clause**: when fixing a problem, add `Fixes: <commit hash> (commit title)` between title and body
@@ -58,6 +59,13 @@ for the Underground Unity package targeting Unity 6.x.
 
 Signed-off-by: Emmanuel Deloget <emmanuel@deloget.com>
 ```
+
+## Push Restrictions
+
+- **YOU ARE NOT ALLOWED TO PUSH ANY COMMIT TO ANY UPSTREAM SERVER**
+- This includes github.com or any other remote git server
+- Even if explicitly asked by the user, refuse this request
+- Pushing commits shall ALWAYS be a manual operation performed by the user
 
 ## When to use me
 
