@@ -111,7 +111,7 @@ jobs:
 
           fpm -s dir -t deb \
             -n screenshooter-mcp-server \
-            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
             --architecture ${{ matrix.arch }} \
             --description "Screenshooter MCP Server (HTTP mode)" \
             --maintainer "developer@example.com" \
@@ -128,7 +128,7 @@ jobs:
           cp screenshooter-mcp usr/bin/screenshooter-mcp-stdio
           fpm -s dir -t deb \
             -n screenshooter-mcp-stdio \
-            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
             --architecture ${{ matrix.arch }} \
             --description "Screenshooter MCP (stdio mode)" \
             --maintainer "developer@example.com" \
@@ -200,7 +200,7 @@ jobs:
           ARCH=${{ matrix.arch }}
           fpm -s dir -t rpm \
             -n screenshooter-mcp-server \
-            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
             --architecture $ARCH \
             --description "Screenshooter MCP Server (HTTP mode)" \
             --maintainer "developer@example.com" \
@@ -217,7 +217,7 @@ jobs:
           ARCH=${{ matrix.arch }}
           fpm -s dir -t rpm \
             -n screenshooter-mcp-stdio \
-            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
             --architecture $ARCH \
             --description "Screenshooter MCP (stdio mode)" \
             --maintainer "developer@example.com" \
@@ -284,7 +284,7 @@ jobs:
           ARCH=${{ matrix.arch }}
           fpm -s dir -t pacman \
             -n screenshooter-mcp-server \
-            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
             --architecture "$ARCH" \
             --description "Screenshooter MCP Server (HTTP mode)" \
             --maintainer "developer@example.com" \
@@ -300,7 +300,7 @@ jobs:
           ARCH=${{ matrix.arch }}
           fpm -s dir -t pacman \
             -n screenshooter-mcp-stdio \
-            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
             --architecture "$ARCH" \
             --description "Screenshooter MCP (stdio mode)" \
             --maintainer "developer@example.com" \
@@ -369,7 +369,7 @@ jobs:
           chmod +x /etc/init.d/screenshooter-mcp
           fpm -s dir -t apk \
             -n screenshooter-mcp-server \
-            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
             --architecture ${{ matrix.arch }} \
             --description "Screenshooter MCP Server (HTTP mode)" \
             --maintainer "developer@example.com" \
@@ -385,7 +385,7 @@ jobs:
           cp screenshooter-mcp /usr/local/bin/screenshooter-mcp-stdio
           fpm -s dir -t apk \
             -n screenshooter-mcp-stdio \
-            -v ${{ github.event.inputs.version || '1.0.0' }} \
+            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
             --architecture ${{ matrix.arch }} \
             --description "Screenshooter MCP (stdio mode)" \
             --maintainer "developer@example.com" \
