@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/jezek/xgb v1.3.0
+	github.com/jezek/xgb v1.3.1
 	github.com/mattn/go-isatty v0.0.21
 	github.com/modelcontextprotocol/go-sdk v1.5.0
 	github.com/nskaggs/perfuncted v0.1.3
