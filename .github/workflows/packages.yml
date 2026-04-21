@@ -107,6 +107,7 @@ jobs:
           mkdir -p pkg/usr/bin
           mkdir -p pkg/etc/screenshooter-mcp
           mkdir -p pkg/lib/systemd/system
+          mkdir -p control
 
           cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
@@ -126,7 +127,7 @@ jobs:
           WantedBy=multi-user.target
           SYSTEMD
 
-          cat > pkg/var/lib/screenshooter-mcp/postinst << 'POSTINST'
+          cat > control/postinst << 'POSTINST'
           #!/bin/sh
           deb-systemd-helper stop screenshooter-mcp 2>/dev/null || true
           if ! id -u screenshooter-mcp >/dev/null 2>&1; then
@@ -139,7 +140,7 @@ jobs:
           deb-systemd-helper restart screenshooter-mcp || true
           POSTINST
 
-          cat > pkg/var/lib/screenshooter-mcp/prerm << 'PRERM'
+          cat > control/prerm << 'PRERM'
           #!/bin/sh
           deb-systemd-helper stop screenshooter-mcp 2>/dev/null || true
           if id -u screenshooter-mcp >/dev/null 2>&1; then
@@ -159,8 +160,8 @@ jobs:
             --license MIT \
             --vendor "Emmanuel Deloget" \
             --depends systemd \
-            --after-install var/lib/screenshooter-mcp/postinst \
-            --before-remove var/lib/screenshooter-mcp/prerm
+            --after-install control/postinst \
+            --before-remove control/prerm
 
       - name: Create stdio package
         run: |
