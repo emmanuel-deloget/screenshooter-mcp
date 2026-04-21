@@ -41,7 +41,7 @@ jobs:
 
       - name: Build static binary
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
 
       - name: Create tar.gz (server)
         run: |
@@ -85,7 +85,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get update && apt-get install -y ruby ruby-dev rubygems build-essential  # ✅ fpm retiré des apt, installé via gem
+          apt-get update && apt-get install -y ruby ruby-dev rubygems build-essential
           gem install fpm --no-document
 
       - name: Set up Go
@@ -95,7 +95,7 @@ jobs:
 
       - name: Build binary
         run: |
-          GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
 
       - name: Create server package
         run: |
@@ -183,7 +183,7 @@ jobs:
 
       - name: Build binary
         run: |
-          GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
 
       - name: Create server package
         run: |
@@ -267,7 +267,7 @@ jobs:
 
       - name: Build binary
         run: |
-          GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
 
       - name: Create server package
         run: |
@@ -351,7 +351,7 @@ jobs:
 
       - name: Build static binary
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
 
       - name: Create server package
         run: |
