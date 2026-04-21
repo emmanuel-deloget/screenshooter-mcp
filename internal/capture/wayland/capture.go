@@ -14,6 +14,7 @@
 package wayland
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"strings"
@@ -175,7 +176,8 @@ func (c *WaylandCapture) fallbackMonitorList() ([]capture.Monitor, error) {
 func (c *WaylandCapture) ListWindows() ([]capture.Window, error) {
 	logging.Debug().Msg("ListWindows called")
 
-	windowList, err := c.windowBackend.List()
+	ctx := context.Background()
+	windowList, err := c.windowBackend.List(ctx)
 	if err != nil {
 		logging.Error().Err(err).Msg("Failed to list windows")
 		return nil, fmt.Errorf("failed to list windows: %w", err)
@@ -239,7 +241,8 @@ func (c *WaylandCapture) CaptureScreen(monitor string) (image.Image, error) {
 	rect := image.Rect(targetMonitor.X, targetMonitor.Y, targetMonitor.X+targetMonitor.Width, targetMonitor.Y+targetMonitor.Height)
 	logging.Debug().Interface("rect", rect).Msg("Capturing screen region")
 
-	img, err := c.screenBackend.Grab(rect)
+	ctx := context.Background()
+	img, err := c.screenBackend.Grab(ctx, rect)
 	if err != nil {
 		logging.Error().Err(err).Msg("Failed to capture screen")
 		return nil, fmt.Errorf("failed to capture screen: %w", err)
@@ -276,7 +279,8 @@ func containsAlias(aliases []string, target string) bool {
 func (c *WaylandCapture) CaptureWindow(title string) (image.Image, error) {
 	logging.Debug().Str("title", title).Msg("CaptureWindow called")
 
-	windowList, err := c.windowBackend.List()
+	ctx := context.Background()
+	windowList, err := c.windowBackend.List(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list windows: %w", err)
 	}
@@ -298,7 +302,7 @@ func (c *WaylandCapture) CaptureWindow(title string) (image.Image, error) {
 	logging.Debug().Uint64("id", matchedWindow.ID).Str("title", matchedWindow.Title).Msg("Window matched")
 
 	rect := image.Rect(matchedWindow.X, matchedWindow.Y, matchedWindow.X+matchedWindow.W, matchedWindow.Y+matchedWindow.H)
-	img, err := c.screenBackend.Grab(rect)
+	img, err := c.screenBackend.Grab(ctx, rect)
 	if err != nil {
 		return nil, fmt.Errorf("failed to capture window: %w", err)
 	}
@@ -318,7 +322,8 @@ func (c *WaylandCapture) CaptureRegion(x, y, w, h int) (image.Image, error) {
 	logging.Debug().Int("x", x).Int("y", y).Int("width", w).Int("height", h).Msg("CaptureRegion called")
 
 	rect := image.Rect(x, y, x+w, y+h)
-	img, err := c.screenBackend.Grab(rect)
+	ctx := context.Background()
+	img, err := c.screenBackend.Grab(ctx, rect)
 	if err != nil {
 		logging.Error().Err(err).Msg("Failed to capture region")
 		return nil, fmt.Errorf("failed to capture region: %w", err)
@@ -370,7 +375,8 @@ func (c *WaylandCapture) CaptureAllScreens() (image.Image, error) {
 	boundingRect := image.Rect(minX, minY, maxX, maxY)
 	logging.Debug().Interface("bounding_rect", boundingRect).Int("monitor_count", len(monitors)).Msg("Capturing all screens")
 
-	img, err := c.screenBackend.Grab(boundingRect)
+	ctx := context.Background()
+	img, err := c.screenBackend.Grab(ctx, boundingRect)
 	if err != nil {
 		logging.Error().Err(err).Msg("Failed to capture all screens")
 		return nil, fmt.Errorf("failed to capture all screens: %w", err)
