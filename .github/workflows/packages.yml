@@ -339,7 +339,7 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
           VERSION="$(echo ${VERSION#v} | sed 's/-//g')"
-          ARCH=$(echo ${{ matrix.arch }} | tr '[:lower:]' '[:upper:]')
+          ARCH=${{ matrix.arch }}
 
           mkdir -p BUILD/pkg
           mkdir -p BUILD/src/usr/bin
