@@ -396,7 +396,8 @@ jobs:
 
           # Fix architecture in PKGBUILD
           sed -i "s/{{VERSION}}/$VERSION/g" BUILD/PKGBUILD
-          sed -i "s/{{ARCH}}/$ARCH/" BUILD/PKGBUILD || true
+          sed -i "s/{{ARCH}}/$ARCH/" BUILD/PKGBUILD
+          cat BUILD/PKGBUILD
 
           chmod -R u+rwX,g+rwX,o+rwX BUILD
           (
@@ -414,7 +415,7 @@ jobs:
           mkdir -p BUILD/src/usr/bin
           cp screenshooter-mcp BUILD/src/usr/bin/screenshooter-mcp-stdio
 
-          cat > PKGBUILD << 'PKGBUILDEOF'
+          cat > BUILD/PKGBUILD << 'PKGBUILDEOF'
           # Maintainer: Emmanuel Deloget <emmanuel@deloget.com>
           pkgname=screenshooter-mcp-stdio
           pkgver={{VERSION}}
@@ -442,7 +443,8 @@ jobs:
 
           # Fix architecture in PKGBUILD
           sed -i "s/{{VERSION}}/$VERSION/g" BUILD/PKGBUILD
-          sed -i "s/{{ARCH}}/$ARCH/" BUILD/PKGBUILD || true
+          sed -i "s/{{ARCH}}/$ARCH/" BUILD/PKGBUILD
+          cat BUILD/PKGBUILD
 
           chmod -R u+rwX,g+rwX,o+rwX BUILD
           (
