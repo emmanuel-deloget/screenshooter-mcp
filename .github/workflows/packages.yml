@@ -10,6 +10,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 env:
   GO_VERSION: '1.26'
 
@@ -39,8 +42,6 @@ jobs:
           cp screenshooter-mcp screenshooter-mcp-${{ matrix.arch }}-server/
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/etc/screenshooter-mcp
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/usr/lib/sysusers
-          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/usr/lib/sysusers
-          echo 'screenshooter-mcp:x:973:' > screenshooter-mcp-${{ matrix.arch }}-server/usr/lib/sysusers/screenshooter-mcp
           cat > screenshooter-mcp-${{ matrix.arch }}-server/usr/lib/sysusers/screenshooter-mcp << 'SYSUSER'
           screenshooter-mcp:x:973:
           SYSUSER
@@ -399,3 +400,26 @@ jobs:
           path: |
             screenshooter-mcp-server-*.apk
             screenshooter-mcp-stdio-*.apk
+
+  release:
+    name: Attach to Release
+    runs-on: ubuntu-latest
+    needs:
+      - build-alpine
+      - build-debian
+      - build-fedora
+      - build-arch
+      - build-alpine-apk
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Attach artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version || github.event.release.tag_name }}
+          files: dist/**/*
