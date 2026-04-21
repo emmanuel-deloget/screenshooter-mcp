@@ -69,6 +69,7 @@ jobs:
             screenshooter-mcp-${{ matrix.arch }}-server.tar.gz
             screenshooter-mcp-${{ matrix.arch }}-stdio.tar.gz
 
+
   build-debian:
     name: Build Debian
     runs-on: ubuntu-latest
@@ -230,6 +231,7 @@ jobs:
           mkdir -p pkg/usr/bin
           mkdir -p pkg/etc/screenshooter-mcp
           mkdir -p pkg/usr/lib/systemd/system
+          mkdir control
 
           cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
@@ -249,17 +251,25 @@ jobs:
           WantedBy=multi-user.target
           SYSTEMD
 
-          cat > pkg/var/lib/screenshooter-mcp/postinst << 'POSTINST'
+          cat > control/postinst << 'POSTINST'
           #!/bin/sh
+          systemctl stop screenshooter-mcp 2>/dev/null || true
           if ! id -u screenshooter-mcp >/dev/null 2>&1; then
             useradd -r -s /sbin/nologin screenshooter-mcp
           fi
           systemctl daemon-reload || true
+          systemctl unmask screenshooter-mcp || true
+          systemctl purge screenshooter-mcp || true
+          systemctl enable screenshooter-mcp || true
+          systemctl restart screenshooter-mcp || true
           POSTINST
 
-          cat > pkg/var/lib/screenshooter-mcp/prerm << 'PRERM'
+          cat > control/prerm << 'PRERM'
           #!/bin/sh
           systemctl stop screenshooter-mcp 2>/dev/null || true
+          if id -u screenshooter-mcp >/dev/null 2>&1; then
+            userdel screenshooter-mcp
+          fi
           PRERM
 
           fpm -s dir -t rpm \
@@ -272,8 +282,8 @@ jobs:
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
             --license MIT \
             --vendor "Emmanuel Deloget" \
-            --after-install var/lib/screenshooter-mcp/postinst \
-            --before-remove var/lib/screenshooter-mcp/prerm
+            --after-install control/postinst \
+            --before-remove control/prerm
 
       - name: Create stdio package
         run: |
@@ -282,14 +292,9 @@ jobs:
           ARCH=${{ matrix.arch }}
 
           mkdir -p pkg/usr/bin
+          mkdir -p pkg/etc/screenshooter-mcp
           cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
-
-          cat > pkg/var/lib/screenshooter-mcp/postinst << 'POSTINST'
-          #!/bin/sh
-          if ! id -u screenshooter-mcp >/dev/null 2>&1; then
-            useradd -r -s /sbin/nologin screenshooter-mcp
-          fi
-          POSTINST
+          echo '{"log_level":"info","color":"auto"}' > pkg/etc/screenshooter-mcp/config.json
 
           fpm -s dir -t rpm \
             -C pkg \
@@ -300,8 +305,7 @@ jobs:
             --maintainer "Emmanuel Deloget <emmanuel@deloget.com>" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
             --license MIT \
-            --vendor "Emmanuel Deloget" \
-            --after-install var/lib/screenshooter-mcp/postinst
+            --vendor "Emmanuel Deloget"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
