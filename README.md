@@ -8,24 +8,26 @@ MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 
 ## Features
 
-- **list_monitors** - List available monitors with names and aliases
+- **list_monitors** - List available displays with names, positions, and dimensions
 - **list_windows** - List open windows with titles and IDs
 - **capture_screen** - Capture full screen or specific monitor (returns PNG)
 - **capture_window** - Capture window by title (partial match supported)
-- **capture_region** - Capture region from virtual screen (returns PNG)
+- **capture_region** - Capture rectangular region from screen (returns PNG)
 
 ## Installation
 
 ### From Packages
 
-Available for Debian, Fedora, Arch Linux, and Alpine:
+Pre-compiled packages for Debian/Ubuntu and Fedora (x86_64 and ARM64):
 
-| Distribution | Package Type | Install |
-|-------------|-------------|---------|
+| Distribution  | Package Type | Install |
+|---------------|-------------|---------|
 | Debian/Ubuntu | `.deb` | `dpkg -i screenshooter-mcp-*.deb` |
-| Fedora | `.rpm` | `dnf install screenshooter-mcp-*.rpm` |
-| Arch Linux | `.pkg.tar.zst` | `pacman -U screenshooter-mcp-*.pkg.tar.zst` |
-| Alpine | `.apk` | `apk add screenshooter-mcp-*.apk` |
+| Fedora        | `.rpm` | `dnf install screenshooter-mcp-*.rpm` |
+
+### Static Binaries
+
+Pre-compiled static binaries are available for all other Linux distributions.
 
 ### From Source
 
@@ -152,12 +154,11 @@ Arguments:
 ### X11
 
 - X11 server with RANDR extension
-- `perfuncted` library
 
 ### Wayland
 
 - wlroots-based compositor (recommended)
-- or portal backend (xdg-desktop-portal)
+- or xdg-desktop-portal backend
 
 ## License
 
