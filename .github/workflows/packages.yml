@@ -260,7 +260,10 @@ jobs:
         run: |
           pacman -Sy --noconfirm ruby gcc make
           gem install fpm --no-document
-          ln -sf $(ruby -e 'puts Gem.bindir')/fpm /usr/local/bin/fpm
+
+      - name: Set up fpm path
+        run: |
+          echo "$(ruby -e 'puts Gem.bindir')" >> $GITHUB_PATH
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -355,7 +358,7 @@ jobs:
 
       - name: Create server package
         run: |
-          mkdir -p etc/screenshooter-mcp /etc/init.d
+          mkdir -p usr/local/bin etc/screenshooter-mcp /etc/init.d
           cp screenshooter-mcp /usr/local/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > etc/screenshooter-mcp/config.json
           cat > /etc/init.d/screenshooter-mcp << 'INITD'
@@ -380,7 +383,7 @@ jobs:
               ;;
           esac
           INITD
-          chmod +x /etc/init.d/screenshooter-mcp
+          chmod 755 /etc/init.d/screenshooter-mcp
           fpm -s dir -t apk \
             -n screenshooter-mcp-server \
             -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
