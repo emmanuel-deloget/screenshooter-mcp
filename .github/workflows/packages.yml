@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: apk add --no-cache git ca-certificates
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -81,7 +81,7 @@ jobs:
           - arch: arm64
             goarch: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
@@ -149,18 +149,11 @@ jobs:
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
             usr/bin/=/usr/bin/
 
-      - name: Rename packages
-        run: |
-          mv screenshooter-mcp-server_*_${{ matrix.arch }}.deb screenshooter-mcp-server_${{ matrix.arch }}.deb
-          mv screenshooter-mcp-stdio_*_${{ matrix.arch }}.deb screenshooter-mcp-stdio_${{ matrix.arch }}.deb
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: debian-${{ matrix.arch }}
-          path: |
-            screenshooter-mcp-server_${{ matrix.arch }}.deb
-            screenshooter-mcp-stdio_${{ matrix.arch }}.deb
+          path: "*.deb"
 
   build-fedora:
     name: Build Fedora
@@ -174,11 +167,11 @@ jobs:
           - arch: aarch64
             goarch: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
-          dnf install -y ruby ruby-devel gcc @development-tools
+          dnf install -y ruby ruby-devel gcc rpm-build @development-tools
           gem install fpm --no-document
 
       - name: Set up Go
@@ -247,9 +240,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fedora-${{ matrix.arch }}
-          path: |
-            screenshooter-mcp-server-*.rpm
-            screenshooter-mcp-stdio-*.rpm
+          path: "*.rpm"
 
   build-arch:
     name: Build Arch
@@ -263,13 +254,13 @@ jobs:
           - arch: aarch64
             goarch: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
           pacman -Sy --noconfirm ruby gcc make
           gem install fpm --no-document
-          echo "$(ruby -e 'puts Gem.bindir')" >> $GITHUB_PATH
+          ln -sf $(ruby -e 'puts Gem.bindir')/fpm /usr/local/bin/fpm
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -331,9 +322,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: arch-${{ matrix.arch }}
-          path: |
-            screenshooter-mcp-server-*.pkg.tar.zst
-            screenshooter-mcp-stdio-*.pkg.tar.zst
+          path: "*.pkg.tar.zst"
 
   build-alpine-apk:
     name: Build Alpine APK
@@ -350,7 +339,7 @@ jobs:
       - name: Install dependencies
         run: apk add --no-cache git ca-certificates ruby ruby-dev gcc musl-dev
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install fpm
         run: gem install fpm --no-document
@@ -366,7 +355,7 @@ jobs:
 
       - name: Create server package
         run: |
-          mkdir -p etc/screenshooter-mcp
+          mkdir -p etc/screenshooter-mcp /etc/init.d
           cp screenshooter-mcp /usr/local/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > etc/screenshooter-mcp/config.json
           cat > /etc/init.d/screenshooter-mcp << 'INITD'
@@ -406,7 +395,6 @@ jobs:
 
       - name: Create stdio package
         run: |
-          mkdir -p /usr/local/bin
           cp screenshooter-mcp /usr/local/bin/screenshooter-mcp-stdio
           fpm -s dir -t apk \
             -n screenshooter-mcp-stdio \
@@ -421,9 +409,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: alpine-apk-${{ matrix.arch }}
-          path: |
-            screenshooter-mcp-server-*.apk
-            screenshooter-mcp-stdio-*.apk
+          path: "*.apk"
 
   release:
     name: Attach to Release
