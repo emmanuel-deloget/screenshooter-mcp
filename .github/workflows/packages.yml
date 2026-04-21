@@ -228,17 +228,26 @@ jobs:
 
       - name: Build binary
         run: |
-          GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          VERSION="${VERSION#v}"
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
 
       - name: Create server package
         run: |
-          mkdir -p usr/bin etc/screenshooter-mcp usr/lib/systemd/system
-          cp screenshooter-mcp usr/bin/screenshooter-mcp-server
-          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > etc/screenshooter-mcp/config.json
-          cat > usr/lib/systemd/system/screenshooter-mcp.service << 'SYSTEMD'
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          VERSION="${VERSION#v}"
+          ARCH=${{ matrix.arch }}
+
+          mkdir -p pkg/usr/bin
+          mkdir -p pkg/etc/screenshooter-mcp
+          mkdir -p pkg/usr/lib/systemd/system
+
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
+          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
+          cat > pkg/usr/lib/systemd/system/screenshooter-mcp.service << 'SYSTEMD'
           [Unit]
           Description=Screenshooter MCP Server
-          After=graphical.target
+          After=network.target
 
           [Service]
           Type=simple
@@ -251,37 +260,59 @@ jobs:
           WantedBy=multi-user.target
           SYSTEMD
 
-          cat > /tmp/before-remove.sh << 'EOF'
+          cat > pkg/var/lib/screenshooter-mcp/postinst << 'POSTINST'
           #!/bin/sh
-          if systemctl is-active screenshooter-mcp >/dev/null 2>&1; then systemctl stop screenshooter-mcp; fi
-          EOF
-          chmod +x /tmp/before-remove.sh
-          ARCH=${{ matrix.arch }}
+          if ! id -u screenshooter-mcp >/dev/null 2>&1; then
+            useradd -r -s /sbin/nologin screenshooter-mcp
+          fi
+          systemctl daemon-reload || true
+          POSTINST
+
+          cat > pkg/var/lib/screenshooter-mcp/prerm << 'PRERM'
+          #!/bin/sh
+          systemctl stop screenshooter-mcp 2>/dev/null || true
+          PRERM
+
           fpm -s dir -t rpm \
+            -C pkg \
             -n screenshooter-mcp-server \
-            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
-            --architecture $ARCH \
+            -v "$VERSION" \
+            --architecture "$ARCH" \
             --description "Screenshooter MCP Server (HTTP mode)" \
-            --maintainer "developer@example.com" \
+            --maintainer "Emmanuel Deloget <emmanuel@deloget.com>" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
-            --before-remove /tmp/before-remove.sh \
-            usr/bin/=/usr/bin/ \
-            etc/=/etc/ \
-            usr/lib/systemd/system/=/lib/systemd/system/
+            --license MIT \
+            --vendor "Emmanuel Deloget" \
+            --after-install var/lib/screenshooter-mcp/postinst \
+            --before-remove var/lib/screenshooter-mcp/prerm
 
       - name: Create stdio package
         run: |
-          mkdir -p usr/bin
-          cp screenshooter-mcp usr/bin/screenshooter-mcp-stdio
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          VERSION="${VERSION#v}"
           ARCH=${{ matrix.arch }}
+
+          mkdir -p pkg/usr/bin
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+
+          cat > pkg/var/lib/screenshooter-mcp/postinst << 'POSTINST'
+          #!/bin/sh
+          if ! id -u screenshooter-mcp >/dev/null 2>&1; then
+            useradd -r -s /sbin/nologin screenshooter-mcp
+          fi
+          POSTINST
+
           fpm -s dir -t rpm \
+            -C pkg \
             -n screenshooter-mcp-stdio \
-            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
-            --architecture $ARCH \
+            -v "$VERSION" \
+            --architecture "$ARCH" \
             --description "Screenshooter MCP (stdio mode)" \
-            --maintainer "developer@example.com" \
+            --maintainer "Emmanuel Deloget <emmanuel@deloget.com>" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
-            usr/bin/=/usr/bin/
+            --license MIT \
+            --vendor "Emmanuel Deloget" \
+            --after-install var/lib/screenshooter-mcp/postinst
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -319,17 +350,26 @@ jobs:
 
       - name: Build binary
         run: |
-          GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          VERSION="${VERSION#v}"
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
 
-      - name: Create server package
+      - name: Create PKGBUILD
         run: |
-          mkdir -p usr/bin etc/screenshooter-mcp usr/lib/systemd/system
-          cp screenshooter-mcp usr/bin/screenshooter-mcp-server
-          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > etc/screenshooter-mcp/config.json
-          cat > usr/lib/systemd/system/screenshooter-mcp.service << 'SYSTEMD'
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          VERSION="${VERSION#v}"
+          ARCH=${{ matrix.arch }}
+
+          mkdir -p pkg/usr/bin
+          mkdir -p pkg/etc/screenshooter-mcp
+          mkdir -p pkg/usr/lib/systemd/system
+
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
+          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
+          cat > pkg/usr/lib/systemd/system/screenshooter-mcp.service << 'SYSTEMD'
           [Unit]
           Description=Screenshooter MCP Server
-          After=graphical.target
+          After=network.target
 
           [Service]
           Type=simple
@@ -342,31 +382,76 @@ jobs:
           WantedBy=multi-user.target
           SYSTEMD
 
-          ARCH=${{ matrix.arch }}
-          fpm -s dir -t pacman \
-            -n screenshooter-mcp-server \
-            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
-            --architecture "$ARCH" \
-            --description "Screenshooter MCP Server (HTTP mode)" \
-            --maintainer "developer@example.com" \
-            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
-            usr/bin/=/usr/bin/ \
-            etc/=/etc/ \
-            usr/lib/systemd/system/=/lib/systemd/system/
+          cat > PKGBUILD << 'PKGBUILDEOF'
+          # Maintainer: Emmanuel Deloget <emmanuel@deloget.com>
+          pkgname=screenshooter-mcp-server
+          pkgver={{ VERSION }}
+          pkgrel=1
+          pkgdesc="Screenshooter MCP Server (HTTP mode)"
+          arch=("$ARCH")
+          url="https://github.com/emmanuel-deloget/screenshooter-mcp"
+          license=("MIT")
+          makedepends=("go")
+          source=("screenshooter-mcp")
+          md5sums=("SKIP")
+
+          build() {
+            cd "$srcdir"
+            mv screenshooter-mcp screenshooter-mcp-server
+          }
+
+          package() {
+            cd "$srcdir"
+            install -Dm755 screenshooter-mcp-server "$pkgdir/usr/bin/screenshooter-mcp-server"
+            install -Dm644 etc/screenshooter-mcp/config.json "$pkgdir/etc/screenshooter-mcp/config.json"
+            install -Dm644 usr/lib/systemd/system/screenshooter-mcp.service "$pkgdir/usr/lib/systemd/system/screenshooter-mcp.service"
+          }
+          PKGBUILDEOF
+
+          # Fix architecture in PKGBUILD
+          sed -i "s/{{ VERSION }}/$VERSION/g" PKGBUILD
+          sed -i "s/\"$ARCH\"/\"$(echo $ARCH | tr '[:lower:]' '[:upper:]')\"/g" PKGBUILD || true
+
+          tar -czvf screenshooter-mcp-server-$VERSION-$ARCH.tar.gz PKGBUILD pkg/
 
       - name: Create stdio package
         run: |
-          mkdir -p usr/bin
-          cp screenshooter-mcp usr/bin/screenshooter-mcp-stdio
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          VERSION="${VERSION#v}"
           ARCH=${{ matrix.arch }}
-          fpm -s dir -t pacman \
-            -n screenshooter-mcp-stdio \
-            -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
-            --architecture "$ARCH" \
-            --description "Screenshooter MCP (stdio mode)" \
-            --maintainer "developer@example.com" \
-            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
-            usr/bin/=/usr/bin/
+
+          mkdir -p pkg/usr/bin
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+
+          cat > PKGBUILD << 'PKGBUILDEOF'
+          # Maintainer: Emmanuel Deloget <emmanuel@deloget.com>
+          pkgname=screenshooter-mcp-stdio
+          pkgver={{ VERSION }}
+          pkgrel=1
+          pkgdesc="Screenshooter MCP (stdio mode)"
+          arch=("$ARCH")
+          url="https://github.com/emmanuel-deloget/screenshooter-mcp"
+          license=("MIT")
+          makedepends=("go")
+          source=("screenshooter-mcp")
+          md5sums=("SKIP")
+
+          build() {
+            cd "$srcdir"
+            mv screenshooter-mcp screenshooter-mcp-stdio
+          }
+
+          package() {
+            cd "$srcdir"
+            install -Dm755 screenshooter-mcp-stdio "$pkgdir/usr/bin/screenshooter-mcp-stdio"
+          }
+          PKGBUILDEOF
+
+          # Fix architecture in PKGBUILD
+          sed -i "s/{{ VERSION }}/$VERSION/g" PKGBUILD
+          sed -i "s/\"$ARCH\"/\"$(echo $ARCH | tr '[:lower:]' '[:upper:]')\"/g" PKGBUILD || true
+
+          tar -czvf screenshooter-mcp-stdio-$VERSION-$ARCH.tar.gz PKGBUILD pkg/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -401,63 +486,76 @@ jobs:
 
       - name: Build static binary
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -ldflags="-s -w" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          VERSION="${VERSION#v}"
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
 
       - name: Create server package
         run: |
           VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
-          
+          VERSION="${VERSION#v}"
+
           mkdir -p pkg/usr/local/bin
           mkdir -p pkg/etc/screenshooter-mcp
           mkdir -p pkg/etc/init.d
-          
+
           cp screenshooter-mcp pkg/usr/local/bin/screenshooter-mcp-server
-          
-          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' \
-            > pkg/etc/screenshooter-mcp/config.json
-          
-          cat > pkg/etc/init.d/screenshooter-mcp << 'EOF'
+          echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
+
+          cat > pkg/etc/init.d/screenshooter-mcp << 'INITD'
           #!/sbin/openrc-run
-          
+
           name="screenshooter-mcp"
           description="Screenshooter MCP Server"
           command="/usr/local/bin/screenshooter-mcp-server"
           command_args="--listen 127.0.0.1:11777"
           pidfile="/run/${RC_SVCNAME}.pid"
-          
+
           depend() {
               need net
           }
-          EOF
-          
-          chmod +x pkg/etc/init.d/screenshooter-mcp
-          
+          INITD
+
+          chmod 755 pkg/etc/init.d/screenshooter-mcp
+
+          cat > pkg/var/lib/screenshooter-mcp/postinst << 'POSTINST'
+          #!/bin/sh
+          if ! id -u screenshooter-mcp >/dev/null 2>&1; then
+            adduser -D -s /sbin/nologin screenshooter-mcp
+          fi
+          POSTINST
+
           fpm -s dir -t apk \
             -C pkg \
             -n screenshooter-mcp-server \
             -v "$VERSION" \
             --architecture ${{ matrix.arch }} \
             --description "Screenshooter MCP Server (HTTP mode)" \
-            --maintainer "developer@example.com" \
+            --maintainer "Emmanuel Deloget <emmanuel@deloget.com>" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
-            --replaces "screenshooter-mcp-stdio"
+            --license MIT \
+            --vendor "Emmanuel Deloget" \
+            --replaces "screenshooter-mcp-stdio" \
+            --after-install var/lib/screenshooter-mcp/postinst
 
       - name: Create stdio package
         run: |
           VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
-          
-          mkdir -p pkg-stdio/usr/local/bin
-          
-          cp screenshooter-mcp pkg-stdio/usr/local/bin/screenshooter-mcp-stdio
-          
+          VERSION="${VERSION#v}"
+
+          mkdir -p pkg/usr/local/bin
+          cp screenshooter-mcp pkg/usr/local/bin/screenshooter-mcp-stdio
+
           fpm -s dir -t apk \
-            -C pkg-stdio \
+            -C pkg \
             -n screenshooter-mcp-stdio \
             -v "$VERSION" \
             --architecture ${{ matrix.arch }} \
             --description "Screenshooter MCP (stdio mode)" \
-            --maintainer "developer@example.com" \
-            --url "https://github.com/emmanuel-deloget/screenshooter-mcp"
+            --maintainer "Emmanuel Deloget <emmanuel@deloget.com>" \
+            --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
+            --license MIT \
+            --vendor "Emmanuel Deloget"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
