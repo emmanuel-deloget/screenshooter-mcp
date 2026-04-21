@@ -329,12 +329,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pacman -Sy --noconfirm ruby gcc make
-          gem install fpm --no-document
-
-      - name: Set up fpm path
-        run: |
-          echo "$(ruby -e 'puts Gem.bindir')" >> $GITHUB_PATH
+          pacman -Sy --noconfirm gcc make
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -347,7 +342,7 @@ jobs:
           VERSION="${VERSION#v}"
           GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -trimpath -ldflags="-s -w -X main.version=$VERSION" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
 
-      - name: Create PKGBUILD
+      - name: Create server package
         run: |
           VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
           VERSION="${VERSION#v}"
@@ -405,7 +400,7 @@ jobs:
           sed -i "s/{{ VERSION }}/$VERSION/g" PKGBUILD
           sed -i "s/\"$ARCH\"/\"$(echo $ARCH | tr '[:lower:]' '[:upper:]')\"/g" PKGBUILD || true
 
-          tar -czvf screenshooter-mcp-server-$VERSION-$ARCH.tar.gz PKGBUILD pkg/
+          makepkg
 
       - name: Create stdio package
         run: |
@@ -444,7 +439,7 @@ jobs:
           sed -i "s/{{ VERSION }}/$VERSION/g" PKGBUILD
           sed -i "s/\"$ARCH\"/\"$(echo $ARCH | tr '[:lower:]' '[:upper:]')\"/g" PKGBUILD || true
 
-          tar -czvf screenshooter-mcp-stdio-$VERSION-$ARCH.tar.gz PKGBUILD pkg/
+          makepkg
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
