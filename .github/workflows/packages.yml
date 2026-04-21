@@ -118,6 +118,11 @@ jobs:
           WantedBy=multi-user.target
           SYSTEMD
 
+          cat > /tmp/before-remove.sh << 'EOF'
+          #!/bin/sh
+          if [ -x /usr/bin/screenshooter-mcp-server ]; then systemctl stop screenshooter-mcp 2>/dev/null; fi
+          EOF
+          chmod +x /tmp/before-remove.sh
           fpm -s dir -t deb \
             -n screenshooter-mcp-server \
             -v ${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }} \
@@ -126,7 +131,7 @@ jobs:
             --maintainer "developer@example.com" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
             --depends systemd-sysv \
-            --before-remove "if [ -x /usr/bin/screenshooter-mcp-server ]; then systemctl stop screenshooter-mcp 2>/dev/null; fi" \
+            --before-remove /tmp/before-remove.sh \
             usr/bin/=/usr/bin/ \
             etc/=/etc/ \
             usr/lib/systemd/system/=/lib/systemd/system/
@@ -206,6 +211,11 @@ jobs:
           WantedBy=multi-user.target
           SYSTEMD
 
+          cat > /tmp/before-remove.sh << 'EOF'
+          #!/bin/sh
+          if systemctl is-active screenshooter-mcp >/dev/null 2>&1; then systemctl stop screenshooter-mcp; fi
+          EOF
+          chmod +x /tmp/before-remove.sh
           ARCH=${{ matrix.arch }}
           fpm -s dir -t rpm \
             -n screenshooter-mcp-server \
@@ -214,7 +224,7 @@ jobs:
             --description "Screenshooter MCP Server (HTTP mode)" \
             --maintainer "developer@example.com" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
-            --before-remove "if systemctl is-active screenshooter-mcp >/dev/null 2>&1; then systemctl stop screenshooter-mcp; fi" \
+            --before-remove /tmp/before-remove.sh \
             usr/bin/=/usr/bin/ \
             etc/=/etc/ \
             usr/lib/systemd/system/=/lib/systemd/system/
@@ -259,6 +269,7 @@ jobs:
         run: |
           pacman -Sy --noconfirm ruby gcc make
           gem install fpm --no-document
+          echo "$(ruby -e 'puts Gem.bindir')" >> $GITHUB_PATH
 
       - name: Set up Go
         uses: actions/setup-go@v5
