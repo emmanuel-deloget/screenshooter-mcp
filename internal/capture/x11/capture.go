@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"image"
 	"strings"
+	"time"
 
 	capture "github.com/emmanuel-deloget/screenshooter-mcp/internal/capture"
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/logging"
@@ -281,6 +282,16 @@ func (c *X11Capture) CaptureWindow(title string) (image.Image, error) {
 
 	if matchedWindow == nil {
 		return nil, fmt.Errorf("window not found: %s", title)
+	}
+
+	err = c.windowBackend.Activate(ctx, title)
+	if err != nil {
+		return nil, fmt.Errorf("failed to activate window: %w", err)
+	}
+	<-time.After(200 * time.Millisecond)
+
+	if matchedWindow.W == 0 || matchedWindow.H == 0 {
+		return nil, fmt.Errorf("window '%s' cannot be captured (width=%d, height=%d)", title, matchedWindow.X, matchedWindow.Y)
 	}
 
 	logging.Debug().Uint64("id", matchedWindow.ID).Str("title", matchedWindow.Title).Msg("Window matched")
