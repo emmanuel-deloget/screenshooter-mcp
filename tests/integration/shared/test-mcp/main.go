@@ -65,6 +65,11 @@ func main() {
 
 	ctx := context.Background()
 
+	if err := initializeServer(ctx, client, serverURL); err != nil {
+		fmt.Fprintf(os.Stderr, "initialize failed: %v\n", err)
+		os.Exit(1)
+	}
+
 	monitors, err := callListMonitors(ctx, client, serverURL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "list_monitors failed: %v\n", err)
@@ -235,7 +240,55 @@ func callToolRaw(ctx context.Context, client *http.Client, serverURL string, par
 		Params:  mustMarshal(params),
 		ID:      1,
 	}
+	return callJSONRPC(ctx, client, serverURL, reqBody)
+}
 
+type InitializeParams struct {
+	ProtocolVersion string `json:"protocolVersion"`
+	Capabilities   map[string]any `json:"capabilities"`
+	ClientInfo     ClientInfo `json:"clientInfo"`
+}
+
+type ClientInfo struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+func initializeServer(ctx context.Context, client *http.Client, serverURL string) error {
+	params := InitializeParams{
+		ProtocolVersion: "2024-11-05",
+		Capabilities:  map[string]any{},
+		ClientInfo: ClientInfo{
+			Name:    "test-mcp",
+			Version: "1.0.0",
+		},
+	}
+
+	reqBody := JSONRPCRequest{
+		JSONRPC: "2.0",
+		Method:  "initialize",
+		Params:  mustMarshal(params),
+		ID:      1,
+	}
+
+	result, err := callJSONRPC(ctx, client, serverURL, reqBody)
+	if err != nil {
+		return fmt.Errorf("initialize failed: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "Initialized: %v\n", result)
+
+	notifReq := JSONRPCRequest{
+		JSONRPC: "2.0",
+		Method:  "notifications/initialized",
+	}
+
+	_, _ = callJSONRPC(ctx, client, serverURL, notifReq)
+
+	return nil
+}
+
+func callJSONRPC(ctx context.Context, client *http.Client, serverURL string, reqBody JSONRPCRequest) (map[string]any, error) {
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
