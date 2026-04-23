@@ -172,17 +172,11 @@ func (m *MCPServer) initialize(ctx context.Context) error {
 		ID:      1,
 	}
 
-	result, err := m.call(ctx, reqBody)
+	_, err := m.call(ctx, reqBody)
 	if err != nil {
 		return fmt.Errorf("initialize failed: %w", err)
 	}
 
-	if result != nil {
-		resultJSON, _ := json.Marshal(result)
-		fmt.Fprintf(os.Stderr, "Initialized: %s\n", string(resultJSON))
-	}
-
-	m.sessionID = fmt.Sprintf("init-%d", time.Now().UnixNano())
 	m.initialized = true
 
 	notifReq := JSONRPCRequest{
@@ -194,6 +188,8 @@ func (m *MCPServer) initialize(ctx context.Context) error {
 	m.call(ctx, notifReq)
 
 	time.Sleep(100 * time.Millisecond)
+
+	fmt.Fprintf(os.Stderr, "Session ID: %s\n", m.sessionID)
 
 	return nil
 }
@@ -337,9 +333,24 @@ func (m *MCPServer) call(ctx context.Context, req JSONRPCRequest) (map[string]an
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized && !m.initialized {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unauthorized: %s", string(respBody))
+	}
+
+	if resp.StatusCode == http.StatusNotFound && m.sessionID != "" {
+		return nil, fmt.Errorf("session not found: %s", m.sessionID)
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected status: %d - %s", resp.StatusCode, string(respBody))
+	}
+
+	sessionID := resp.Header.Get("mcp-session-id")
+	if sessionID != "" && m.sessionID == "" {
+		m.sessionID = sessionID
+		fmt.Fprintf(os.Stderr, "Session ID: %s\n", m.sessionID)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
