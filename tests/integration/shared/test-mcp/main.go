@@ -50,10 +50,22 @@ type ClientInfo struct {
 	Version string `json:"version"`
 }
 
+type InitializeResult struct {
+	ProtocolVersion string         `json:"protocolVersion"`
+	Capabilities    map[string]any `json:"capabilities"`
+	ServerInfo      ServerInfo     `json:"serverInfo"`
+}
+
+type ServerInfo struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
 type MCPServer struct {
-	client   *http.Client
-	serverURL string
-	sessionID string
+	client      *http.Client
+	serverURL  string
+	sessionID  string
+	initialized bool
 }
 
 func main() {
@@ -166,8 +178,12 @@ func (m *MCPServer) initialize(ctx context.Context) error {
 	}
 
 	if result != nil {
-		fmt.Fprintf(os.Stderr, "Initialized: %v\n", result)
+		resultJSON, _ := json.Marshal(result)
+		fmt.Fprintf(os.Stderr, "Initialized: %s\n", string(resultJSON))
 	}
+
+	m.sessionID = fmt.Sprintf("init-%d", time.Now().UnixNano())
+	m.initialized = true
 
 	notifReq := JSONRPCRequest{
 		JSONRPC: "2.0",
@@ -310,6 +326,10 @@ func (m *MCPServer) call(ctx context.Context, req JSONRPCRequest) (map[string]an
 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "application/json, text/event-stream")
+
+	if m.sessionID != "" {
+		httpReq.Header.Set("mcp-session-id", m.sessionID)
+	}
 
 	resp, err := m.client.Do(httpReq)
 	if err != nil {
@@ -465,22 +485,4 @@ func saveImage(ctx context.Context, dir, name string, data []byte) {
 	}
 
 	fmt.Printf("Saved: %s (%d bytes)\n", path, len(data))
-}
-
-type readCloseProxy struct {
-	data []byte
-	pos  int
-}
-
-func (r *readCloseProxy) Read(p []byte) (n int, err error) {
-	if r.pos >= len(r.data) {
-		return 0, io.EOF
-	}
-	n = copy(p, r.data[r.pos:])
-	r.pos += n
-	return n, nil
-}
-
-func (r *readCloseProxy) Close() error {
-	return nil
 }
