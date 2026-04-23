@@ -39,9 +39,21 @@ type ToolCallParams struct {
 	Arguments json.RawMessage `json:"arguments,omitempty"`
 }
 
-type MCPResponse struct {
-	Content []map[string]any `json:"content"`
-	IsError bool             `json:"isError"`
+type InitializeParams struct {
+	ProtocolVersion string         `json:"protocolVersion"`
+	Capabilities    map[string]any `json:"capabilities"`
+	ClientInfo      ClientInfo     `json:"clientInfo"`
+}
+
+type ClientInfo struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+type MCPServer struct {
+	client   *http.Client
+	serverURL string
+	sessionID string
 }
 
 func main() {
@@ -59,18 +71,21 @@ func main() {
 		serverURL = os.Args[1]
 	}
 
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
 	ctx := context.Background()
 
-	if err := initializeServer(ctx, client, serverURL); err != nil {
+	mcp := &MCPServer{
+		client: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		serverURL: serverURL,
+	}
+
+	if err := mcp.initialize(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "initialize failed: %v\n", err)
 		os.Exit(1)
 	}
 
-	monitors, err := callListMonitors(ctx, client, serverURL)
+	monitors, err := mcp.listMonitors(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "list_monitors failed: %v\n", err)
 		os.Exit(1)
@@ -78,7 +93,7 @@ func main() {
 
 	saveJSON(ctx, outputDir, "list_monitors.json", monitors)
 
-	windows, err := callListWindows(ctx, client, serverURL)
+	windows, err := mcp.listWindows(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "list_windows failed: %v\n", err)
 		os.Exit(1)
@@ -86,7 +101,7 @@ func main() {
 
 	saveJSON(ctx, outputDir, "list_windows.json", windows)
 
-	imgData, err := callCaptureScreen(ctx, client, serverURL, "")
+	imgData, err := mcp.captureScreen(ctx, "")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "capture_screen failed: %v\n", err)
 		os.Exit(1)
@@ -97,7 +112,7 @@ func main() {
 	if len(monitors) > 0 {
 		firstMonitor := monitors[0]
 		if name, ok := firstMonitor["Name"].(string); ok {
-			imgData, err := callCaptureScreen(ctx, client, serverURL, name)
+			imgData, err := mcp.captureScreen(ctx, name)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "capture_screen (monitor %s) failed: %v\n", name, err)
 				os.Exit(1)
@@ -109,7 +124,7 @@ func main() {
 	if len(windows) > 0 {
 		firstWindow := windows[0]
 		if title, ok := firstWindow["Title"].(string); ok {
-			imgData, err := callCaptureWindow(ctx, client, serverURL, title)
+			imgData, err := mcp.captureWindow(ctx, title)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "capture_window (title %s) failed: %v\n", title, err)
 				os.Exit(1)
@@ -118,7 +133,7 @@ func main() {
 		}
 	}
 
-	imgData, err = callCaptureRegion(ctx, client, serverURL, 0, 0, 800, 600)
+	imgData, err = mcp.captureRegion(ctx, 0, 0, 800, 600)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "capture_region failed: %v\n", err)
 		os.Exit(1)
@@ -128,21 +143,60 @@ func main() {
 	fmt.Println("All tests passed!")
 }
 
-func callListMonitors(ctx context.Context, client *http.Client, serverURL string) ([]map[string]any, error) {
+func (m *MCPServer) initialize(ctx context.Context) error {
+	params := InitializeParams{
+		ProtocolVersion: "2024-11-05",
+		Capabilities:  map[string]any{},
+		ClientInfo: ClientInfo{
+			Name:    "test-mcp",
+			Version: "1.0.0",
+		},
+	}
+
+	reqBody := JSONRPCRequest{
+		JSONRPC: "2.0",
+		Method:  "initialize",
+		Params:  mustMarshal(params),
+		ID:      1,
+	}
+
+	result, err := m.call(ctx, reqBody)
+	if err != nil {
+		return fmt.Errorf("initialize failed: %w", err)
+	}
+
+	if result != nil {
+		fmt.Fprintf(os.Stderr, "Initialized: %v\n", result)
+	}
+
+	notifReq := JSONRPCRequest{
+		JSONRPC: "2.0",
+		Method:  "notifications/initialized",
+		ID:      2,
+	}
+
+	m.call(ctx, notifReq)
+
+	time.Sleep(100 * time.Millisecond)
+
+	return nil
+}
+
+func (m *MCPServer) listMonitors(ctx context.Context) ([]map[string]any, error) {
 	params := ToolCallParams{
 		Name: "list_monitors",
 	}
-	return callTool(ctx, client, serverURL, params)
+	return m.callTool(ctx, params)
 }
 
-func callListWindows(ctx context.Context, client *http.Client, serverURL string) ([]map[string]any, error) {
+func (m *MCPServer) listWindows(ctx context.Context) ([]map[string]any, error) {
 	params := ToolCallParams{
 		Name: "list_windows",
 	}
-	return callTool(ctx, client, serverURL, params)
+	return m.callTool(ctx, params)
 }
 
-func callCaptureScreen(ctx context.Context, client *http.Client, serverURL, monitor string) ([]byte, error) {
+func (m *MCPServer) captureScreen(ctx context.Context, monitor string) ([]byte, error) {
 	args := map[string]any{}
 	if monitor != "" {
 		args["monitor"] = monitor
@@ -153,7 +207,7 @@ func callCaptureScreen(ctx context.Context, client *http.Client, serverURL, moni
 		Arguments: mustMarshal(args),
 	}
 
-	result, err := callToolRaw(ctx, client, serverURL, params)
+	result, err := m.callToolRaw(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +215,7 @@ func callCaptureScreen(ctx context.Context, client *http.Client, serverURL, moni
 	return extractImage(result)
 }
 
-func callCaptureWindow(ctx context.Context, client *http.Client, serverURL, title string) ([]byte, error) {
+func (m *MCPServer) captureWindow(ctx context.Context, title string) ([]byte, error) {
 	args := map[string]any{
 		"title": title,
 	}
@@ -171,7 +225,7 @@ func callCaptureWindow(ctx context.Context, client *http.Client, serverURL, titl
 		Arguments: mustMarshal(args),
 	}
 
-	result, err := callToolRaw(ctx, client, serverURL, params)
+	result, err := m.callToolRaw(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +233,7 @@ func callCaptureWindow(ctx context.Context, client *http.Client, serverURL, titl
 	return extractImage(result)
 }
 
-func callCaptureRegion(ctx context.Context, client *http.Client, serverURL string, x, y, w, h int) ([]byte, error) {
+func (m *MCPServer) captureRegion(ctx context.Context, x, y, w, h int) ([]byte, error) {
 	args := map[string]any{
 		"x":      x,
 		"y":      y,
@@ -192,7 +246,7 @@ func callCaptureRegion(ctx context.Context, client *http.Client, serverURL strin
 		Arguments: mustMarshal(args),
 	}
 
-	result, err := callToolRaw(ctx, client, serverURL, params)
+	result, err := m.callToolRaw(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -200,8 +254,8 @@ func callCaptureRegion(ctx context.Context, client *http.Client, serverURL strin
 	return extractImage(result)
 }
 
-func callTool(ctx context.Context, client *http.Client, serverURL string, params ToolCallParams) ([]map[string]any, error) {
-	result, err := callToolRaw(ctx, client, serverURL, params)
+func (m *MCPServer) callTool(ctx context.Context, params ToolCallParams) ([]map[string]any, error) {
+	result, err := m.callToolRaw(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -233,80 +287,31 @@ func callTool(ctx context.Context, client *http.Client, serverURL string, params
 	return parsed, nil
 }
 
-func callToolRaw(ctx context.Context, client *http.Client, serverURL string, params ToolCallParams) (map[string]any, error) {
+func (m *MCPServer) callToolRaw(ctx context.Context, params ToolCallParams) (map[string]any, error) {
 	reqBody := JSONRPCRequest{
 		JSONRPC: "2.0",
 		Method:  "tools/call",
 		Params:  mustMarshal(params),
-		ID:      1,
+		ID:      3,
 	}
-	return callJSONRPC(ctx, client, serverURL, reqBody)
+	return m.call(ctx, reqBody)
 }
 
-type InitializeParams struct {
-	ProtocolVersion string `json:"protocolVersion"`
-	Capabilities   map[string]any `json:"capabilities"`
-	ClientInfo     ClientInfo `json:"clientInfo"`
-}
-
-type ClientInfo struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-}
-
-func initializeServer(ctx context.Context, client *http.Client, serverURL string) error {
-	params := InitializeParams{
-		ProtocolVersion: "2024-11-05",
-		Capabilities:  map[string]any{},
-		ClientInfo: ClientInfo{
-			Name:    "test-mcp",
-			Version: "1.0.0",
-		},
-	}
-
-	reqBody := JSONRPCRequest{
-		JSONRPC: "2.0",
-		Method:  "initialize",
-		Params:  mustMarshal(params),
-		ID:      1,
-	}
-
-	result, err := callJSONRPC(ctx, client, serverURL, reqBody)
-	if err != nil {
-		return fmt.Errorf("initialize failed: %w", err)
-	}
-
-	fmt.Fprintf(os.Stderr, "Initialized: %v\n", result)
-
-	notifReq := JSONRPCRequest{
-		JSONRPC: "2.0",
-		Method:  "notifications/initialized",
-	}
-
-	_, _ = callJSONRPC(ctx, client, serverURL, notifReq)
-
-	return nil
-}
-
-func callJSONRPC(ctx context.Context, client *http.Client, serverURL string, reqBody JSONRPCRequest) (map[string]any, error) {
-	body, err := json.Marshal(reqBody)
+func (m *MCPServer) call(ctx context.Context, req JSONRPCRequest) (map[string]any, error) {
+	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", serverURL, io.NopCloser(
-		io.NopCloser(
-			&readCloseProxy{data: body},
-		),
-	))
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", m.serverURL, strings.NewReader(string(body)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json, text/event-stream")
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json, text/event-stream")
 
-	resp, err := client.Do(req)
+	resp, err := m.client.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -337,8 +342,8 @@ func callJSONRPC(ctx context.Context, client *http.Client, serverURL string, req
 	}
 
 	result, ok := rpcResp.Result.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("unexpected result type")
+	if !ok && rpcResp.Result != nil {
+		return nil, fmt.Errorf("unexpected result type: %T", rpcResp.Result)
 	}
 
 	return result, nil
