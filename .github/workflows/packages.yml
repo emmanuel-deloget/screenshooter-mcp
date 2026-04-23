@@ -102,48 +102,36 @@ jobs:
 
           mkdir -p pkg/usr/bin
           mkdir -p pkg/etc/screenshooter-mcp
-          mkdir -p pkg/lib/systemd/system
+          mkdir -p pkg/usr/lib/systemd/user
           mkdir -p control
 
           cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
-          cat > pkg/lib/systemd/system/screenshooter-mcp.service << 'SYSTEMD'
+          cat > pkg/usr/lib/systemd/user/screenshooter-mcp.service << 'SYSTEMD'
           [Unit]
           Description=Screenshooter MCP Server
-          After=network.target
+          PartOf=graphical-session.target
+          After=graphical-session.target
 
           [Service]
           Type=simple
           ExecStart=/usr/bin/screenshooter-mcp-server --listen 127.0.0.1:11777
           Restart=on-failure
-          User=screenshooter-mcp
-          Group=screenshooter-mcp
 
           [Install]
-          WantedBy=multi-user.target
+          WantedBy=graphical-session.target
           SYSTEMD
 
           cat > control/postinst << 'POSTINST'
           #!/bin/sh
-          deb-systemd-helper stop screenshooter-mcp 2>/dev/null || true
-          if ! id -u screenshooter-mcp >/dev/null 2>&1; then
-            useradd -r -s /sbin/nologin screenshooter-mcp
-          fi
-          systemctl daemon-reload || true
-          deb-systemd-helper unmask screenshooter-mcp || true
-          deb-systemd-helper purge screenshooter-mcp || true
-          deb-systemd-helper enable screenshooter-mcp || true
-          deb-systemd-helper restart screenshooter-mcp || true
+          set -e
+          for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
+            if [ -d "/run/user/$uid" ]; then
+              su - "$(id -nu "$uid")" -c "systemctl --user daemon-reload" 2>/dev/null || true
+            fi
+          done
           POSTINST
-
-          cat > control/prerm << 'PRERM'
-          #!/bin/sh
-          deb-systemd-helper stop screenshooter-mcp 2>/dev/null || true
-          if id -u screenshooter-mcp >/dev/null 2>&1; then
-            deluser --system screenshooter-mcp
-            delgroup --system --only-if-empty screenshooter-mcp 
-          fi
-          PRERM
+          chmod 755 control/postinst
 
           fpm -s dir -t deb \
             -C pkg \
@@ -156,8 +144,7 @@ jobs:
             --license MIT \
             --vendor "Emmanuel Deloget" \
             --depends systemd \
-            --after-install control/postinst \
-            --before-remove control/prerm
+            --after-install control/postinst
 
       - name: Create stdio package
         run: |
@@ -225,47 +212,36 @@ jobs:
 
           mkdir -p pkg/usr/bin
           mkdir -p pkg/etc/screenshooter-mcp
-          mkdir -p pkg/usr/lib/systemd/system
-          mkdir control
+          mkdir -p pkg/usr/lib/systemd/user
+          mkdir -p control
 
           cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
-          cat > pkg/usr/lib/systemd/system/screenshooter-mcp.service << 'SYSTEMD'
+          cat > pkg/usr/lib/systemd/user/screenshooter-mcp.service << 'SYSTEMD'
           [Unit]
           Description=Screenshooter MCP Server
-          After=network.target
+          PartOf=graphical-session.target
+          After=graphical-session.target
 
           [Service]
           Type=simple
           ExecStart=/usr/bin/screenshooter-mcp-server --listen 127.0.0.1:11777
           Restart=on-failure
-          User=screenshooter-mcp
-          Group=screenshooter-mcp
 
           [Install]
-          WantedBy=multi-user.target
+          WantedBy=graphical-session.target
           SYSTEMD
 
           cat > control/postinst << 'POSTINST'
           #!/bin/sh
-          systemctl stop screenshooter-mcp 2>/dev/null || true
-          if ! id -u screenshooter-mcp >/dev/null 2>&1; then
-            useradd -r -s /sbin/nologin screenshooter-mcp
-          fi
-          systemctl daemon-reload || true
-          systemctl unmask screenshooter-mcp || true
-          systemctl purge screenshooter-mcp || true
-          systemctl enable screenshooter-mcp || true
-          systemctl restart screenshooter-mcp || true
+          set -e
+          for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
+            if [ -d "/run/user/$uid" ]; then
+              su - "$(id -nu "$uid")" -c "systemctl --user daemon-reload" 2>/dev/null || true
+            fi
+          done
           POSTINST
-
-          cat > control/prerm << 'PRERM'
-          #!/bin/sh
-          systemctl stop screenshooter-mcp 2>/dev/null || true
-          if id -u screenshooter-mcp >/dev/null 2>&1; then
-            userdel screenshooter-mcp
-          fi
-          PRERM
+          chmod 755 control/postinst
 
           fpm -s dir -t rpm \
             -C pkg \
@@ -277,8 +253,7 @@ jobs:
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
             --license MIT \
             --vendor "Emmanuel Deloget" \
-            --after-install control/postinst \
-            --before-remove control/prerm
+            --after-install control/postinst
 
       - name: Create stdio package
         run: |
