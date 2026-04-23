@@ -1,0 +1,13 @@
+images/
+keys/
+isos/
+bases/
+vms/
+pkg/
+*.qcow2
+*.qcow2.bz2
+*.qcow2.gz
+*.img
+*.iso
+*.log
+test-mcp
