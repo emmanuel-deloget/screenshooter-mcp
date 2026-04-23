@@ -78,6 +78,15 @@ configure_display_mode_gnome_debian_ubuntu() {
 			echo "Wayland is the default mode, nothing to do"
 			;;
 	esac
+
+	virt-customize -a "$VM_IMAGE" \
+		--run-command "mkdir -p /etc/dconf/db/local.d" \
+		--run-command "printf '[org/gnome/shell]\ndevelopment-tools=true\n' > /etc/dconf/db/local.d/00-screenshooter" \
+		--run-command "mkdir -p /etc/dconf/profile" \
+		--run-command "printf 'user-db:user\nsystem-db:local\nsystem-db:ibus\n' > /etc/dconf/profile/user" \
+		--run-command "dconf update" \
+		--run-command "sed -i 's/^#\s*AutomaticLoginEnable\s*=.*/AutomaticLoginEnable=true/' /etc/gdm3/daemon.conf" \
+		--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm3/daemon.conf"
 }
 
 configure_display_gnome_mode_fedora() {
@@ -95,7 +104,56 @@ configure_display_gnome_mode_fedora() {
 			echo "Wayland is the default mode, nothing to do"
 			;;
 	esac
+
+	virt-customize -a "$VM_IMAGE" \
+		--run-command "mkdir -p /etc/dconf/db/local.d" \
+		--run-command "printf '[org/gnome/shell]\ndevelopment-tools=true\n' > /etc/dconf/db/local.d/00-screenshooter" \
+		--run-command "mkdir -p /etc/dconf/profile" \
+		--run-command "printf 'user-db:user\nsystem-db:local\nsystem-db:ibus\n' > /etc/dconf/profile/user" \
+		--run-command "dconf update" \
+		--run-command "sed -i 's/^#\s*AutomaticLoginEnable\s*=.*/AutomaticLoginEnable=true/' /etc/gdm3/daemon.conf" \
+		--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm3/daemon.conf"
 }
+
+configure_display_mode_kde_debian_ubuntu() {
+	local disk="$1"
+	local mode="$2"
+
+	case "$mode" in
+		x11)
+			echo "X11 seems to be the default mode, nothing to do"
+			;;
+		wayland)
+			echo "Configuring for Wayland..."
+			virt-customize -a "$VM_IMAGE" \
+				--run-command "mkdir -p /etc/sddm.conf.d" \
+				--run-command "printf '[Autologin]\nUser=tester\nSession=plasmawayland\n' > /etc/sddm.conf.d/autologin.conf" \
+				--run-command "printf '[General]\nDefaultSession=plasmawayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+			;;
+	esac
+}
+
+configure_display_kde_mode_fedora() {
+	local disk="$1"
+	local mode="$2"
+
+	case "$mode" in
+		x11)
+			echo "Configuring X11 mode..."
+			virt-customize -a "$disk" \
+				--install xorg-x11-server-Xorg \
+				--firstboot-command "sed -i 's/^#WaylandEnable=false/WaylandEnable=false/' /etc/gdm/custom.conf || true"
+			;;
+		wayland)
+			echo "Wayland is the default mode, nothing to do"
+			virt-customize -a "$VM_IMAGE" \
+				--run-command "mkdir -p /etc/sddm.conf.d" \
+				--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf" \
+				--run-command "printf '[General]\nDefaultSession=plasma-wayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+			;;
+	esac
+}
+
 
 configure_display_mode() {
 	local disk="$1"
@@ -107,13 +165,17 @@ configure_display_mode() {
 		debian-gnome|ubuntu-gnome)
 			configure_display_mode_gnome_debian_ubuntu "${disk}" "${mode}"
 			;;
+		debian-kde|ubuntu-kde)
+			configure_display_mode_kde_debian_ubuntu "${disk}" "${mode}"
+			;;
 		fedora-gnome)
 			configure_display_gnome_mode_fedora "${disk}" "${mode}"
 			;;
+		fedora-kde)
+			configure_display_kde_mode_fedora "${disk}" "${mode}"
+			;;
 	esac
 }
-
-configure_display_mode "$VM_IMAGE" "$MODE" "$DISTRO" "$DESKTOP"
 
 echo "Setting up EFI fallback boot entry..."
 case "$DISTRO" in
@@ -137,23 +199,7 @@ virt-customize -a "$VM_IMAGE" \
 		--run-command "mkdir -p /var/lib/systemd/linger" \
 		--run-command "touch /var/lib/systemd/linger/tester"
 
-case "$DESKTOP" in
-	[kK][dD][eE])
-		virt-customize -a "$VM_IMAGE" \
-			--run-command "mkdir -p /etc/sddm.conf.d" \
-			--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf"
-    ;;
-  *)
-		virt-customize -a "$VM_IMAGE" \
-			--run-command "mkdir -p /etc/dconf/db/local.d" \
-			--run-command "printf '[org/gnome/shell]\ndevelopment-tools=true\n' > /etc/dconf/db/local.d/00-screenshooter" \
-			--run-command "mkdir -p /etc/dconf/profile" \
-			--run-command "printf 'user-db:user\nsystem-db:local\nsystem-db:ibus\n' > /etc/dconf/profile/user" \
-			--run-command "dconf update" \
-			--run-command "sed -i 's/^#\s*AutomaticLoginEnable\s*=.*/AutomaticLoginEnable=true/' /etc/gdm3/daemon.conf" \
-			--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm3/daemon.conf"
-    ;;
-esac
+configure_display_mode "$VM_IMAGE" "$MODE" "$DISTRO" "$DESKTOP"
 
 if ! virsh net-info default &>/dev/null; then
 	echo "Defining the 'default' network"

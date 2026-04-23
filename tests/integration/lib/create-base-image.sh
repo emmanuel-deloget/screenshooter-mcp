@@ -81,12 +81,16 @@ get_install_with_task() {
 }
 
 create_debian_image() {
+	local sz=30
+
+	[ "${2}" = "kde" ] && sz=45
+
 	echo "Starting virt-install for Debian..."
 	virt-install \
 		--name "$VM_NAME" \
 		--memory 8192 \
 		--vcpus 2 \
-		--disk path="$BASE_IMAGE",format=qcow2,size=30 \
+		--disk path="$BASE_IMAGE",format=qcow2,size=${sz} \
 		--location "$ISO_FILE" \
 		--graphics spice \
 		--video virtio \
