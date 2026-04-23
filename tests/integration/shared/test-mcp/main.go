@@ -64,8 +64,8 @@ type ServerInfo struct {
 
 type MCPServer struct {
 	client      *http.Client
-	serverURL  string
-	sessionID  string
+	serverURL   string
+	sessionID   string
 	initialized bool
 }
 
@@ -159,7 +159,7 @@ func main() {
 func (m *MCPServer) initialize(ctx context.Context) error {
 	params := InitializeParams{
 		ProtocolVersion: "2024-11-05",
-		Capabilities:  map[string]any{},
+		Capabilities:    map[string]any{},
 		ClientInfo: ClientInfo{
 			Name:    "test-mcp",
 			Version: "1.0.0",
@@ -383,39 +383,22 @@ func (m *MCPServer) call(ctx context.Context, req JSONRPCRequest) (map[string]an
 
 func parseSSEResponse(body io.Reader) (map[string]any, error) {
 	scanner := bufio.NewScanner(body)
-	var lastEventData string
+	buf := make([]byte, 256*1024)
+	scanner.Buffer(buf, 10*1024*1024)
 
-	for scanner.Scan() {
-		line := scanner.Text()
+	var dataBuf strings.Builder
 
-		if strings.HasPrefix(line, "data:") {
-			lastEventData = strings.TrimPrefix(line, "data:")
-			lastEventData = strings.TrimSpace(lastEventData)
+	flush := func() (map[string]any, error) {
+		if dataBuf.Len() == 0 {
+			return nil, nil
 		}
 
-		if line == "" && lastEventData != "" {
-			var rpcResp JSONRPCResponse
-			if err := json.Unmarshal([]byte(lastEventData), &rpcResp); err != nil {
-				continue
-			}
+		raw := dataBuf.String()
+		dataBuf.Reset()
 
-			if rpcResp.Error != nil {
-				return nil, fmt.Errorf("RPC error: %s", rpcResp.Error.Message)
-			}
-
-			result, ok := rpcResp.Result.(map[string]any)
-			if !ok {
-				return nil, fmt.Errorf("unexpected result type in SSE")
-			}
-
-			return result, nil
-		}
-	}
-
-	if lastEventData != "" {
 		var rpcResp JSONRPCResponse
-		if err := json.Unmarshal([]byte(lastEventData), &rpcResp); err != nil {
-			return nil, fmt.Errorf("failed to parse SSE data: %w", err)
+		if err := json.Unmarshal([]byte(raw), &rpcResp); err != nil {
+			return nil, err
 		}
 
 		if rpcResp.Error != nil {
@@ -430,7 +413,30 @@ func parseSSEResponse(body io.Reader) (map[string]any, error) {
 		return result, nil
 	}
 
-	return nil, fmt.Errorf("no valid JSON-RPC response found in SSE stream")
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		switch {
+		case strings.HasPrefix(line, "event:"):
+			continue
+
+		case strings.HasPrefix(line, "data:"):
+			data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			dataBuf.WriteString(data)
+
+		case line == "":
+			res, err := flush()
+			if err != nil {
+				return nil, err
+			}
+			if res != nil {
+				return res, nil
+			}
+		}
+	}
+
+	// flush final
+	return flush()
 }
 
 func extractImage(result map[string]any) ([]byte, error) {
