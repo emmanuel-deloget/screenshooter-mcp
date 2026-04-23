@@ -43,6 +43,8 @@ You can get additional information about the project, the project structure, the
 
 When editing one of this file, make sure that the content you are modifying is in relation with the subject of the file. If you believe that your modification does not belong to any existing file, you are allowed to create a new file in the _doc/ directory. 
 
+# Go Language
+
 ## Build & Test
 
 ```bash
@@ -188,27 +190,67 @@ func TestCaptureScreen(t *testing.T) {
 }
 ```
 
-## Operational Guidelines
+# Other languages
 
-### When to Commit
+## Shell scripts
+
+- avoid bashism, prefer standard sh constructs ; when possible, use `#!/bin/sh` as the shebang
+- use TAB as the indentation mechanism, not spaces
+- shell functions that require local variables should define them as `local`
+- shell functions that accept parameters shall define one `local` variable per parameter, and use this variable instead of `$1`...
+  - exception: functions that takes parameters and feed them all to a called utility (using "$@")
+- separate the declaration of local variables from code with an empty line
+- enclose the use of shell variables in accolades, as in `${variable}`
+- when possible, use double quotes to avoid space-related issues : `${variables}`
+- use `$(command)` instead of backticks
+
+Good:
+```shell
+#!/bin/sh
+
+myfunc() {
+	local v
+
+	v="${1}"
+	echo "${v}"
+}
+
+myfunc "Hello World"
+```
+
+Bad:
+```bash
+#!/bin/bash
+
+myfunc() {
+	v=$1
+	echo $v
+}
+
+myfunc "Hello World"
+```
+
+# Operational Guidelines
+
+## When to Commit
 
 - Commit early and often with focused changes
 - Each commit should represent one logical change
 - Never commit without explicit permission from user
 
-### Before Submitting
+## Before Submitting
 
 1. Run `go vet ./...` - check for issues
 2. Run `go test ./...` - ensure tests pass
 3. Review diff with `git diff`
 
-### Code Review
+## Code Review
 
 - Keep PRs focused and small
 - Explain WHY changes were made, not just WHAT
 - Reference related issues
 
-### Build Commands
+## Build Commands
 
 ```bash
 eval "$(direnv export bash)" && go build ./...          # Build all
