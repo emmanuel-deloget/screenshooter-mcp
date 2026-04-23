@@ -6,6 +6,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -447,21 +448,37 @@ func extractImage(result map[string]any) ([]byte, error) {
 		return nil, fmt.Errorf("unexpected content type")
 	}
 
-	data, ok := first["data"].([]any)
+	dataField, ok := first["data"]
 	if !ok {
 		return nil, fmt.Errorf("no data field")
 	}
 
-	if len(data) == 0 {
-		return nil, fmt.Errorf("empty data array")
+	var dataBytes []byte
+	switch v := dataField.(type) {
+	case string:
+		var err error
+		dataBytes, err = decoding(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode base64: %w", err)
+		}
+	case []any:
+		if len(v) == 0 {
+			return nil, fmt.Errorf("empty data array")
+		}
+		dataStr, ok := v[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("expected string data")
+		}
+		dataBytes = []byte(dataStr)
+	default:
+		return nil, fmt.Errorf("unexpected data type: %T", dataField)
 	}
 
-	dataStr, ok := data[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("expected string data")
-	}
+	return dataBytes, nil
+}
 
-	return []byte(dataStr), nil
+func decoding(s string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(s)
 }
 
 func mustMarshal(v any) json.RawMessage {
