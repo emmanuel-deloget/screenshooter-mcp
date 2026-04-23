@@ -8,6 +8,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VMS_DIR="$(cd "$SCRIPT_DIR/../vms" && pwd)"
 KEYS_DIR="$(cd "$SCRIPT_DIR/../keys" && pwd)"
 
+# this is required if we want to enable networking on our VMs ; and it shall be used
+# through all operations, including virt-install and so on.
+export LIBVIRT_DEFAULT_URI=qemu:///system
+
 COMMAND="$1"
 VM_NAME="$2"
 
