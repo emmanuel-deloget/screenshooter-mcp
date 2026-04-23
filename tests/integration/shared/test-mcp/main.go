@@ -4,12 +4,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -262,6 +264,11 @@ func callToolRaw(ctx context.Context, client *http.Client, serverURL string, par
 		return nil, fmt.Errorf("unexpected status: %d - %s", resp.StatusCode, string(respBody))
 	}
 
+	contentType := resp.Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "text/event-stream") {
+		return parseSSEResponse(resp.Body)
+	}
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
@@ -282,6 +289,58 @@ func callToolRaw(ctx context.Context, client *http.Client, serverURL string, par
 	}
 
 	return result, nil
+}
+
+func parseSSEResponse(body io.Reader) (map[string]any, error) {
+	scanner := bufio.NewScanner(body)
+	var lastEventData string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.HasPrefix(line, "data:") {
+			lastEventData = strings.TrimPrefix(line, "data:")
+			lastEventData = strings.TrimSpace(lastEventData)
+		}
+
+		if line == "" && lastEventData != "" {
+			var rpcResp JSONRPCResponse
+			if err := json.Unmarshal([]byte(lastEventData), &rpcResp); err != nil {
+				continue
+			}
+
+			if rpcResp.Error != nil {
+				return nil, fmt.Errorf("RPC error: %s", rpcResp.Error.Message)
+			}
+
+			result, ok := rpcResp.Result.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("unexpected result type in SSE")
+			}
+
+			return result, nil
+		}
+	}
+
+	if lastEventData != "" {
+		var rpcResp JSONRPCResponse
+		if err := json.Unmarshal([]byte(lastEventData), &rpcResp); err != nil {
+			return nil, fmt.Errorf("failed to parse SSE data: %w", err)
+		}
+
+		if rpcResp.Error != nil {
+			return nil, fmt.Errorf("RPC error: %s", rpcResp.Error.Message)
+		}
+
+		result, ok := rpcResp.Result.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("unexpected result type in SSE")
+		}
+
+		return result, nil
+	}
+
+	return nil, fmt.Errorf("no valid JSON-RPC response found in SSE stream")
 }
 
 func extractImage(result map[string]any) ([]byte, error) {
