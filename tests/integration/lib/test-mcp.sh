@@ -103,15 +103,16 @@ esac
 echo "  OK"
 
 echo "[6/8] Starting MCP server..."
-case "$DISTRO" in
-	debian|ubuntu)
-		run_on_vm "sudo systemctl start screenshooter-mcp || true"
-		;;
-	fedora)
-		run_on_vm "sudo systemctl start screenshooter-mcp || true"
-		;;
-esac
-sleep 2
+run_on_vm "systemctl --user daemon-reload"
+run_on_vm "systemctl --user enable --now screenshooter-mcp.service"
+sleep 3
+run_on_vm "systemctl --user is-active screenshooter-mcp.service" || {
+	echo "ERROR: MCP server failed to start"
+	run_on_vm "systemctl --user status screenshooter-mcp.service" || true
+	run_on_vm "journalctl --user -u screenshooter-mcp --no-pager -n 20" || true
+	exit 1
+}
+echo "  OK"
 
 echo "[7/8] Running MCP tools test..."
 # Run test-mcp inside VM

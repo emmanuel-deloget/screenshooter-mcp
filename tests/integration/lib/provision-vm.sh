@@ -62,7 +62,7 @@ chmod 0664 "$VM_IMAGE"
 chmod 0664 "$VM_IMAGE"
 
 # Configure X11/Wayland mode
-configure_display_mode() {
+configure_display_mode_gnome_debian_ubuntu() {
 	local disk="$1"
 	local mode="$2"
 
@@ -70,17 +70,50 @@ configure_display_mode() {
 		x11)
 			echo "Configuring X11 mode..."
 			virt-customize -a "$disk" \
-				--firstboot-command "sed -i 's/^#*WaylandEnable=.*/WaylandEnable=false/' /etc/gdm3/custom.conf 2>/dev/null || sed -i 's/^#*WaylandEnable=.*/WaylandEnable=false/' /etc/gdm/custom.conf 2>/dev/null || true"
+				--install xserver-xorg \
+				--firstboot-command "sed -i 's/^#*WaylandEnable=.*/WaylandEnable=false/' /etc/gdm3/daemon.conf 2>/dev/null || true" \
+				--firstboot-command "sed -i 's/^#WaylandEnable=false/WaylandEnable=false/' /etc/gdm3/custom.conf 2> /dev/null || true"
 			;;
 		wayland)
-			echo "Configuring Wayland mode..."
-			virt-customize -a "$disk" \
-				--firstboot-command "sed -i 's/^#*WaylandEnable=.*/#WaylandEnable=true/' /etc/gdm3/custom.conf 2>/dev/null || sed -i 's/^#*WaylandEnable=.*/#WaylandEnable=true/' /etc/gdm/custom.conf 2>/dev/null || true"
+			echo "Wayland is the default mode, nothing to do"
 			;;
 	esac
 }
 
-configure_display_mode "$VM_IMAGE" "$MODE"
+configure_display_gnome_mode_fedora() {
+	local disk="$1"
+	local mode="$2"
+
+	case "$mode" in
+		x11)
+			echo "Configuring X11 mode..."
+			virt-customize -a "$disk" \
+				--install xorg-x11-server-Xorg \
+				--firstboot-command "sed -i 's/^#WaylandEnable=false/WaylandEnable=false/' /etc/gdm/custom.conf || true"
+			;;
+		wayland)
+			echo "Wayland is the default mode, nothing to do"
+			;;
+	esac
+}
+
+configure_display_mode() {
+	local disk="$1"
+	local mode="$2"
+	local distro="$3"
+	local desktop="$4"
+
+	case "${distro}-${desktop}" in
+		debian-gnome|ubuntu-gnome)
+			configure_display_mode_gnome_debian_ubuntu "${disk}" "${mode}"
+			;;
+		fedora-gnome)
+			configure_display_gnome_mode_fedora "${disk}" "${mode}"
+			;;
+	esac
+}
+
+configure_display_mode "$VM_IMAGE" "$MODE" "$DISTRO" "$DESKTOP"
 
 echo "Setting up EFI fallback boot entry..."
 case "$DISTRO" in
@@ -100,7 +133,27 @@ virt-customize -a "$VM_IMAGE" \
     --run-command "cp ${EFI_SRC} /boot/efi/EFI/BOOT/bootx64.efi" \
     --install sudo \
 		--run-command "echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester" \
-		--run-command "chmod 440 /etc/sudoers.d/tester"
+		--run-command "chmod 440 /etc/sudoers.d/tester" \
+		--run-command "mkdir -p /var/lib/systemd/linger" \
+		--run-command "touch /var/lib/systemd/linger/tester"
+
+case "$DESKTOP" in
+	[kK][dD][eE])
+		virt-customize -a "$VM_IMAGE" \
+			--run-command "mkdir -p /etc/sddm.conf.d" \
+			--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf"
+    ;;
+  *)
+		virt-customize -a "$VM_IMAGE" \
+			--run-command "mkdir -p /etc/dconf/db/local.d" \
+			--run-command "printf '[org/gnome/shell]\ndevelopment-tools=true\n' > /etc/dconf/db/local.d/00-screenshooter" \
+			--run-command "mkdir -p /etc/dconf/profile" \
+			--run-command "printf 'user-db:user\nsystem-db:local\nsystem-db:ibus\n' > /etc/dconf/profile/user" \
+			--run-command "dconf update" \
+			--run-command "sed -i 's/^#\s*AutomaticLoginEnable\s*=.*/AutomaticLoginEnable=true/' /etc/gdm3/daemon.conf" \
+			--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm3/daemon.conf"
+    ;;
+esac
 
 if ! virsh net-info default &>/dev/null; then
 	echo "Defining the 'default' network"
