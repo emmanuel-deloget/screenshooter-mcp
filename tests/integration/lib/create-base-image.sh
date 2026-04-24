@@ -122,33 +122,83 @@ create_debian_image() {
 		--selinux-relabel || true
 }
 
+get_ubuntu_desktop_package() {
+	case "${1}" in
+	kde)
+		echo kde-plasma-desktop,sddm,sddm-theme-breeze
+		;;
+	*)
+		echo ubuntu-desktop,gdm3
+		;;
+	esac
+}
+
 create_ubuntu_image() {
+	local user_password
+	local password_hash
+	local ssh_pubkey
+
+	echo "Create the autoinstall seed [requires root]"
+	user_password="$(cat "${KEYS_DIR}/user-password-file")"
+	password_hash="$(openssl passwd -6 -salt "$(openssl rand -base64 8)" "$user_password")"
+	ssh_pubkey="$(cat "${SSH_KEY}")"
+
+	# WARNING - take care, these are spaces, not tabs
+	cat > "${KEYS_DIR}/user-data" <<EOF
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: ubuntu-test
+    username: tester
+    password: "${password_hash}"
+  ssh:
+    install-server: true
+    authorized-keys:
+      - "${ssh_pubkey}"
+  storage:
+    layout:
+      name: lvm
+  late-commands:
+    - echo 'tester ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/tester
+    - chmod 440 /target/etc/sudoers.d/tester
+EOF
+
+	touch "${KEYS_DIR}/meta-data"
+
+	(
+		cd "${KEYS_DIR}"
+		[ -f seed.iso ] && sudo chown $USER:$USER seed.iso
+		rm -f seed.iso
+		genisoimage -output seed.iso \
+			-volid cidata \
+			-joliet -rock \
+			"user-data" "meta-data"
+	)
+
 	echo "Starting virt-install for Ubuntu..."
 	virt-install \
 		--name "$VM_NAME" \
 		--memory 8192 \
 		--vcpus 2 \
 		--disk path="$BASE_IMAGE",format=qcow2,size=30 \
-		--location "$ISO_FILE" \
+		--cdrom "$ISO_FILE" \
+		--disk path="${KEYS_DIR}/seed.iso",device=cdrom \
 		--graphics spice \
 		--video virtio \
 		--osinfo ubuntu${1} \
-		--unattended "user-login=tester,user-password-file=${KEYS_DIR}/user-password-file,admin-password-file=${KEYS_DIR}/admin-password-file" \
 		--boot uefi \
 		--transient \
 		--wait 60
 
-	echo "Change the owner of the generated base image"
+	echo "Change the owner of the generated base image [requires root]"
 	sudo chown "$USER:$USER" "$BASE_IMAGE"
 	chmod 0644 "$BASE_IMAGE"
 
 	echo "Post-install customization..."
 	virt-customize \
 		-a "$BASE_IMAGE" \
-		--install spice-vdagent,spice-webdavd,qemu-guest-agent,openssh-client,openssh-server,cloud-init,sudo \
-		--ssh-inject "tester:file:${SSH_KEY}" \
-		--run-command "echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester" \
-		--run-command "chmod 440 /etc/sudoers.d/tester" \
+		--install $(get_ubuntu_desktop_package "${2}"),spice-vdagent,spice-webdavd,qemu-guest-agent,openssh-client,openssh-server,cloud-init,sudo \
 		--run-command "systemctl enable cloud-init" \
 		--run-command "systemctl enable cloud-init-local" \
 		--run-command "systemctl enable cloud-config" \
@@ -156,6 +206,9 @@ create_ubuntu_image() {
 		--run-command "systemctl enable ssh || systemctl enable sshd" \
 		--run-command "systemctl enable spice-vdagentd" \
 		--run-command "systemctl enable qemu-guest-agent" \
+		--run-command "systemctl enable gdm3 || true" \
+		--run-command "systemctl enable sddm || true" \
+		--run-command "systemctl set-default graphical.target" \
 		--selinux-relabel || true
 }
 

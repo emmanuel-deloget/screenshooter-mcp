@@ -62,7 +62,7 @@ chmod 0664 "$VM_IMAGE"
 chmod 0664 "$VM_IMAGE"
 
 # Configure X11/Wayland mode
-configure_display_mode_gnome_debian_ubuntu() {
+configure_display_mode_gnome_debian() {
 	local disk="$1"
 	local mode="$2"
 
@@ -89,6 +89,28 @@ configure_display_mode_gnome_debian_ubuntu() {
 		--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm3/daemon.conf"
 }
 
+configure_display_mode_gnome_ubuntu() {
+	local disk="$1"
+	local mode="$2"
+
+	case "$mode" in
+		x11)
+			echo "Configuring X11 mode..."
+			virt-customize -a "$disk" \
+				--install xserver-xorg \
+				--firstboot-command "sed -i 's/^#*WaylandEnable=.*/WaylandEnable=false/' /etc/gdm3/daemon.conf 2>/dev/null || true" \
+				--firstboot-command "sed -i 's/^#WaylandEnable=false/WaylandEnable=false/' /etc/gdm3/custom.conf 2> /dev/null || true"
+			;;
+		wayland)
+			echo "Wayland is the default mode, nothing to do"
+			;;
+	esac
+
+	virt-customize -a "$VM_IMAGE" \
+		--run-command "sed -i 's/^#\s*AutomaticLoginEnable\s*=.*/AutomaticLoginEnable=true/' /etc/gdm3/custom.conf || true" \
+		--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm3/custom.conf || true"
+}
+
 configure_display_gnome_mode_fedora() {
 	local disk="$1"
 	local mode="$2"
@@ -106,17 +128,43 @@ configure_display_gnome_mode_fedora() {
 		--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm/custom.conf"
 }
 
-configure_display_mode_kde_debian_ubuntu() {
+configure_display_mode_kde_debian() {
 	local disk="$1"
 	local mode="$2"
 
 	case "$mode" in
 		x11)
-			echo "X11 seems to be the default mode, nothing to do"
+			echo "Configuring for X11"
+			virt-customize -a "$VM_IMAGE" \
+				--run-command "mkdir -p /etc/sddm.conf.d" \
+				--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf"
 			;;
 		wayland)
 			echo "Configuring for Wayland..."
 			virt-customize -a "$VM_IMAGE" \
+				--run-command "mkdir -p /etc/sddm.conf.d" \
+				--run-command "printf '[Autologin]\nUser=tester\nSession=plasmawayland\n' > /etc/sddm.conf.d/autologin.conf" \
+				--run-command "printf '[General]\nDefaultSession=plasmawayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+			;;
+	esac
+}
+
+configure_display_mode_kde_ubuntu() {
+	local disk="$1"
+	local mode="$2"
+
+	case "$mode" in
+		x11)
+			echo "Configuring for X11"
+			virt-customize -a "$VM_IMAGE" \
+				--install sddm-theme-breeze \
+				--run-command "mkdir -p /etc/sddm.conf.d" \
+				--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf"
+			;;
+		wayland)
+			echo "Configuring for Wayland..."
+			virt-customize -a "$VM_IMAGE" \
+				--install sddm-theme-breeze \
 				--run-command "mkdir -p /etc/sddm.conf.d" \
 				--run-command "printf '[Autologin]\nUser=tester\nSession=plasmawayland\n' > /etc/sddm.conf.d/autologin.conf" \
 				--run-command "printf '[General]\nDefaultSession=plasmawayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
@@ -144,11 +192,17 @@ configure_display_mode() {
 	local desktop="$4"
 
 	case "${distro}-${desktop}" in
-		debian-gnome|ubuntu-gnome)
-			configure_display_mode_gnome_debian_ubuntu "${disk}" "${mode}"
+		debian-gnome)
+			configure_display_mode_gnome_debian "${disk}" "${mode}"
 			;;
-		debian-kde|ubuntu-kde)
-			configure_display_mode_kde_debian_ubuntu "${disk}" "${mode}"
+		ubuntu-gnome)
+			configure_display_mode_gnome_ubuntu "${disk}" "${mode}"
+			;;
+		debian-kde)
+			configure_display_mode_kde_debian "${disk}" "${mode}"
+			;;
+		ubuntu-kde)
+			configure_display_mode_kde_ubuntu "${disk}" "${mode}"
 			;;
 		fedora-gnome)
 			configure_display_gnome_mode_fedora "${disk}" "${mode}"
