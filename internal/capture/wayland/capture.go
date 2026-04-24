@@ -34,26 +34,39 @@ import (
 //
 // The capture maintains references to both backends and is responsible for
 // closing them when no longer needed.
+//
+// When the window backend cannot be opened (e.g., due to missing portals or
+// permissions), the capture operates in degraded mode where window-related
+// operations (ListWindows, CaptureWindow) return an error. Screen capture
+// and monitor enumeration continue to work in this mode.
 type WaylandCapture struct {
 	// screenBackend handles actual screen capture operations.
 	screenBackend screen.Screenshotter
 	// windowBackend handles window enumeration and management.
 	windowBackend window.Manager
+	// windowAvailable indicates whether the window backend is available.
+	// When false, window-related operations return an error.
+	windowAvailable bool
 }
 
 // NewWaylandCapture creates a new WaylandCapture instance.
 //
-// This function initializes both the screen and window backends required
-// for capture operations. Both backends must be successfully opened
-// for the capture to function.
+// This function initializes the screen backend required for capture
+// operations. The window backend is optional - if it fails to initialize
+// (e.g., due to missing portals or permissions), the capture operates
+// in degraded mode where window-related operations (ListWindows,
+// CaptureWindow) return an error.
 //
 // The screen backend uses the desktop portal via DBus, so it may prompt
 // the user for permission on first use depending on the compositor's
 // permission settings.
 //
-// Returns the created WaylandCapture instance, or an error if either
-// backend fails to initialize. On error, any successfully opened
-// backends are closed before returning the error.
+// Returns the created WaylandCapture instance, or an error if the
+// screen backend fails to initialize. On error, any successfully
+// opened backends are closed before returning the error.
+//
+// When operating in degraded mode, a warning is logged but no
+// error is returned - the capture still functions for screen capture.
 func NewWaylandCapture() (*WaylandCapture, error) {
 	logging.Debug().Msg("WaylandCapture creating screen backend")
 	sc, err := screen.Open()
@@ -65,15 +78,19 @@ func NewWaylandCapture() (*WaylandCapture, error) {
 	logging.Debug().Msg("WaylandCapture creating window backend")
 	win, err := window.Open()
 	if err != nil {
-		logging.Error().Err(err).Msg("Failed to open window backend")
-		sc.Close()
-		return nil, fmt.Errorf("failed to open window backend: %w", err)
+		logging.Warn().Err(err).Msg("Window backend unavailable, operating in degraded mode")
+		return &WaylandCapture{
+			screenBackend:   sc,
+			windowBackend:   nil,
+			windowAvailable: false,
+		}, nil
 	}
 
 	logging.Debug().Msg("WaylandCapture created successfully")
 	return &WaylandCapture{
-		screenBackend: sc,
-		windowBackend: win,
+		screenBackend:   sc,
+		windowBackend:   win,
+		windowAvailable: true,
 	}, nil
 }
 
@@ -173,8 +190,15 @@ func (c *WaylandCapture) fallbackMonitorList() ([]capture.Monitor, error) {
 //
 // Returns a slice of Window structs. The slice is empty if no windows are
 // found or if window enumeration fails.
+//
+// If the window backend is unavailable (e.g., missing portals or
+// permissions), returns an error indicating the feature is unavailable.
 func (c *WaylandCapture) ListWindows() ([]capture.Window, error) {
 	logging.Debug().Msg("ListWindows called")
+
+	if !c.windowAvailable {
+		return nil, fmt.Errorf("window enumeration unavailable: window backend not initialized (likely missing XDG portal permissions)")
+	}
 
 	ctx := context.Background()
 	windowList, err := c.windowBackend.List(ctx)
@@ -276,8 +300,15 @@ func containsAlias(aliases []string, target string) bool {
 //
 // The captured image includes the window's entire visible area.
 // Coordinates are relative to the virtual screen.
+//
+// If the window backend is unavailable (e.g., missing portals or
+// permissions), returns an error indicating the feature is unavailable.
 func (c *WaylandCapture) CaptureWindow(title string) (image.Image, error) {
 	logging.Debug().Str("title", title).Msg("CaptureWindow called")
+
+	if !c.windowAvailable {
+		return nil, fmt.Errorf("window capture unavailable: window backend not initialized (likely missing XDG portal permissions)")
+	}
 
 	ctx := context.Background()
 	windowList, err := c.windowBackend.List(ctx)
