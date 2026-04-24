@@ -33,17 +33,11 @@ download_debian() {
 
 	local iso_url
 	case "${version}-${desktop}" in
-		12-gnome)
+		12-gnome|12-kde)
 			iso_url="https://cdimage.debian.org/cdimage/archive/12.13.0/amd64/iso-cd/debian-12.13.0-amd64-netinst.iso"
 			;;
-		12-kde)
-			iso_url="https://cdimage.debian.org/cdimage/archive/12.13.0/amd64/iso-cd/debian-12.13.0-amd64-netinst.iso"
-			;;
-		13-gnome)
-			iso_url="https://cdimage.debian.org/mirror/cdimage/archive/13.3.0/amd64/iso-cd/debian-13.3.0-amd64-netinst.iso"
-			;;
-		13-kde)
-			iso_url="https://cdimage.debian.org/mirror/cdimage/archive/13.3.0/amd64/iso-cd/debian-13.3.0-amd64-netinst.iso"
+		13-gnome|13-kde)
+			iso_url="https://cdimage.debian.org/mirror/cdimage/archive/13.3.0/amd64/iso-cd/debian-13.4.0-amd64-netinst.iso"
 			;;
 		*)
 			echo "Unsupported Debian version/desktop: $version $desktop"
@@ -68,7 +62,7 @@ download_ubuntu() {
 			iso_url="https://releases.ubuntu.com/25.10/ubuntu-25.10-live-server-amd64.iso"
 			;;
 		26.04)
-			iso_url="https://releases.ubuntu.com/26.04/ubuntu-26.04-beta-live-server-amd64.iso"
+			iso_url="https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso"
 			;;
 		*)
 			echo "Unsupported Ubuntu version: $version"
