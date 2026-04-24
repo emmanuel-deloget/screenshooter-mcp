@@ -93,26 +93,17 @@ configure_display_gnome_mode_fedora() {
 	local disk="$1"
 	local mode="$2"
 
-	case "$mode" in
-		x11)
-			echo "Configuring X11 mode..."
-			virt-customize -a "$disk" \
-				--install xorg-x11-server-Xorg \
-				--firstboot-command "sed -i 's/^#WaylandEnable=false/WaylandEnable=false/' /etc/gdm/custom.conf || true"
-			;;
-		wayland)
-			echo "Wayland is the default mode, nothing to do"
-			;;
-	esac
+	# there is no x11 mode in fedora, but we still need to do some adjustment
 
 	virt-customize -a "$VM_IMAGE" \
+		--run-command "grubby --update-kernel=ALL --args='console=ttyS0,115200n8'" \
 		--run-command "mkdir -p /etc/dconf/db/local.d" \
 		--run-command "printf '[org/gnome/shell]\ndevelopment-tools=true\n' > /etc/dconf/db/local.d/00-screenshooter" \
 		--run-command "mkdir -p /etc/dconf/profile" \
 		--run-command "printf 'user-db:user\nsystem-db:local\nsystem-db:ibus\n' > /etc/dconf/profile/user" \
 		--run-command "dconf update" \
-		--run-command "sed -i 's/^#\s*AutomaticLoginEnable\s*=.*/AutomaticLoginEnable=true/' /etc/gdm3/daemon.conf" \
-		--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm3/daemon.conf"
+		--run-command "sed -i 's/^#\s*AutomaticLoginEnable\s*=.*/AutomaticLoginEnable=true/' /etc/gdm/custom.conf" \
+		--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm/custom.conf"
 }
 
 configure_display_mode_kde_debian_ubuntu() {
@@ -137,23 +128,14 @@ configure_display_kde_mode_fedora() {
 	local disk="$1"
 	local mode="$2"
 
-	case "$mode" in
-		x11)
-			echo "Configuring X11 mode..."
-			virt-customize -a "$disk" \
-				--install xorg-x11-server-Xorg \
-				--firstboot-command "sed -i 's/^#WaylandEnable=false/WaylandEnable=false/' /etc/gdm/custom.conf || true"
-			;;
-		wayland)
-			echo "Wayland is the default mode, nothing to do"
-			virt-customize -a "$VM_IMAGE" \
-				--run-command "mkdir -p /etc/sddm.conf.d" \
-				--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf" \
-				--run-command "printf '[General]\nDefaultSession=plasma-wayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
-			;;
-	esac
-}
+	# there is no x11 mode in fedora, but we still need to do some adjustment
 
+	virt-customize -a "$VM_IMAGE" \
+		--run-command "grubby --update-kernel=ALL --args='console=ttyS0,115200n8'" \
+		--run-command "mkdir -p /etc/sddm.conf.d" \
+		--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf" \
+		--run-command "printf '[General]\nDefaultSession=plasma-wayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+}
 
 configure_display_mode() {
 	local disk="$1"
@@ -193,6 +175,7 @@ esac
 virt-customize -a "$VM_IMAGE" \
     --run-command "mkdir -p /boot/efi/EFI/BOOT" \
     --run-command "cp ${EFI_SRC} /boot/efi/EFI/BOOT/bootx64.efi" \
+		--run-command "sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config || true" \
     --install sudo \
 		--run-command "echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester" \
 		--run-command "chmod 440 /etc/sudoers.d/tester" \
@@ -223,18 +206,11 @@ fi
 
 virsh net-autostart default
 
-virsh net-list --all
-
 # Define and start VM
 echo "Starting VM..."
 
 virsh destroy "$VM_NAME" 2>/dev/null || true
 virsh undefine "$VM_NAME" --nvram 2>/dev/null || true
-
-echo "Copying NVRAM [requires root]"
-sudo cp "${BASE_NVRAM}" "${VM_NVRAM}"
-sudo chown "$USER:$USER" "$VM_NVRAM"
-chmod 0644 "$VM_NVRAM"
 
 virsh define /dev/stdin << EOF
 <domain type='kvm'>

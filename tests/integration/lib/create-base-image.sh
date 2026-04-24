@@ -197,8 +197,9 @@ create_fedora_image() {
 	echo "Post-install customization..."
 	virt-customize \
 		-a "$BASE_IMAGE" \
-		--install spice-vdagent,spice-webdavd,qemu-guest-agent,openssh-client,openssh-server,cloud-init,sudo \
+		--install spice-vdagent,spice-webdavd,qemu-guest-agent,openssh,openssh-server,cloud-init,sudo \
 		--run-command "dnf install -y $(get_install_with_dnf "${2}")" \
+		--run-command "dnf install -y openssh" \
 		--ssh-inject "tester:file:${SSH_KEY}" \
 		--run-command "echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester" \
 		--run-command "chmod 440 /etc/sudoers.d/tester" \
