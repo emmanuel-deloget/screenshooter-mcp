@@ -43,20 +43,20 @@ download_from_github() {
 	local distro="$1"
 	local version="$2"
 
-	echo "Fetching latest release info from GitHub..."
+	echo "Fetching latest tag info from GitHub..."
 	local tag
 	if [ "$version" = "latest" ]; then
-		tag=$(curl -sSL "https://api.github.com/repos/${REPO}/releases/latest" | jq -r '.tag_name // empty')
+		tag=$(curl -sSL "https://api.github.com/repos/${REPO}/tags" | jq -r '.[0].name // empty')
 	else
 		tag="$version"
 	fi
 
 	if [ -z "$tag" ]; then
-		echo "Failed to fetch release info"
+		echo "Failed to fetch tag info"
 		return 1
 	fi
 
-	echo "Latest release: $tag"
+	echo "Latest tag: $tag"
 
 	local assets
 	assets=$(curl -sSL "https://api.github.com/repos/${REPO}/releases/tags/${tag}" | jq -r '.assets[] | .name + " " + .browser_download_url')
