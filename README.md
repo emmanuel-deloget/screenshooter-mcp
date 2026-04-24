@@ -160,6 +160,18 @@ Arguments:
 - wlroots-based compositor (recommended)
 - or xdg-desktop-portal backend
 
+## Testing
+
+Integration tests in `tests/integration/` create VMs using KVM/libvirt to test the MCP server end-to-end. They are designed to run on a Debian/Ubuntu workstation with KVM virtualization enabled.
+
+To run a test:
+```bash
+cd tests/integration
+./run.sh debian 12 gnome wayland
+```
+
+See `tests/integration/README.md` for requirements and supported configurations.
+
 ## License
 
 MIT
