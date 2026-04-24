@@ -86,9 +86,6 @@ download_fedora() {
 
 	local iso_url
 	case "${version}-${desktop}" in
-		42-gnome|42-kde)
-				iso_url="https://download.fedoraproject.org/pub/fedora/linux/releases/42/Everything/x86_64/iso/Fedora-Everything-netinst-x86_64-42-1.1.iso"
-				;;
 		43-gnome|43-kde)
     	iso_url="https://download.fedoraproject.org/pub/fedora/linux/releases/43/Everything/x86_64/iso/Fedora-Everything-netinst-x86_64-43-1.6.iso"
     	;;

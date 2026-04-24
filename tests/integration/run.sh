@@ -5,7 +5,7 @@
 # Supported distributions:
 #   - debian: 12, 13
 #   - ubuntu: 24.04, 25.10, 26.04
-#   - fedora: 42, 43
+#   - fedora: 43
 #
 # Supported desktops: gnome, kde
 # Supported modes: x11, wayland
@@ -45,7 +45,7 @@ if [ -z "$DISTRO" ] || [ -z "$VERSION" ] || [ -z "$DESKTOP" ] || [ -z "$MODE" ];
 	echo "Supported distributions:"
 	echo "  - debian: 12, 13"
 	echo "  - ubuntu: 24.04, 25.10, 26.04"
-	echo "  - fedora: 42, 43"
+	echo "  - fedora: 43"
 	echo ""
 	echo "Supported desktops: gnome, kde"
 	echo "Supported modes: x11, wayland"
