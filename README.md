@@ -25,6 +25,17 @@ Pre-compiled packages for Debian/Ubuntu and Fedora (x86_64 and ARM64):
 | Debian/Ubuntu | `.deb` | `dpkg -i screenshooter-mcp-*.deb` |
 | Fedora        | `.rpm` | `dnf install screenshooter-mcp-*.rpm` |
 
+### ⚠️ Security Notice - Automatic Screenshot Authorization
+
+**Server packages automatically pre-authorize screenshot permissions** by configuring the XDG portal permission store. This bypasses the authorization dialog that applications typically receive when requesting screen capture.
+
+This means:
+- The MCP server can capture the screen without user prompts
+- **All applications** can capture the screen without user prompts (same effect as allowing once)
+- On first login, a systemd service runs to grant this permission automatically
+
+This design prioritizes convenience for AI agent use cases but may not be suitable for high-security environments. Future updates may restrict authorization to only the MCP server process.
+
 ### Static Binaries
 
 Pre-compiled static binaries are available for all other Linux distributions.
