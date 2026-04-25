@@ -103,7 +103,42 @@ jobs:
           mkdir -p pkg/usr/bin
           mkdir -p pkg/etc/screenshooter-mcp
           mkdir -p pkg/usr/lib/systemd/user
+          mkdir -p pkg/usr/lib/screenshooter-mcp
           mkdir -p control
+
+          # portal auth script
+          cat > pkg/usr/lib/screenshooter-mcp/authorize-portal.sh << 'AUTHSCRIPT'
+          #!/bin/sh
+          auth_screenshot() {
+            gdbus call --session \
+              --dest org.freedesktop.impl.portal.PermissionStore \
+              --object-path /org/freedesktop/impl/portal/PermissionStore \
+              --method org.freedesktop.impl.portal.PermissionStore.Set \
+              "screenshot" true "screenshot" "{'': ['yes']}" "<byte 0x00>"
+          }
+          if auth_screenshot; then
+            mkdir -p "${HOME}/.local/share/screenshooter-mcp"
+            touch "${HOME}/.local/share/screenshooter-mcp/.portal-authorized"
+          fi
+          AUTHSCRIPT
+          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
+
+          # portal auth service
+          cat > pkg/usr/lib/systemd/user/screenshooter-mcp-portal-auth.service << 'AUTHSERVICE'
+          [Unit]
+          Description=Pre-authorize screenshooter-mcp screenshot portal permission
+          After=xdg-desktop-portal.service
+          Wants=xdg-desktop-portal.service
+          ConditionPathExists=!%h/.local/share/screenshooter-mcp/.portal-authorized
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/lib/screenshooter-mcp/authorize-portal.sh
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=graphical-session.target
+          AUTHSERVICE
 
           cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
@@ -128,6 +163,7 @@ jobs:
           for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
             if [ -d "/run/user/$uid" ]; then
               su - "$(id -nu "$uid")" -c "systemctl --user daemon-reload" 2>/dev/null || true
+              su - "$(id -nu "$uid")" -c "systemctl --user enable --now screenshooter-mcp-portal-auth.service" 2>/dev/null || true
             fi
           done
           POSTINST
@@ -177,7 +213,7 @@ jobs:
   build-fedora:
     name: Build Fedora
     runs-on: ubuntu-latest
-    container: fedora:41
+    container: fedora:43
     strategy:
       matrix:
         include:
@@ -213,7 +249,42 @@ jobs:
           mkdir -p pkg/usr/bin
           mkdir -p pkg/etc/screenshooter-mcp
           mkdir -p pkg/usr/lib/systemd/user
+          mkdir -p pkg/usr/lib/screenshooter-mcp
           mkdir -p control
+
+          # portal auth script
+          cat > pkg/usr/lib/screenshooter-mcp/authorize-portal.sh << 'AUTHSCRIPT'
+          #!/bin/sh
+          auth_screenshot() {
+            gdbus call --session \
+              --dest org.freedesktop.impl.portal.PermissionStore \
+              --object-path /org/freedesktop/impl/portal/PermissionStore \
+              --method org.freedesktop.impl.portal.PermissionStore.Set \
+              "screenshot" true "screenshot" "{'': ['yes']}" "<byte 0x00>"
+          }
+          if auth_screenshot; then
+            mkdir -p "${HOME}/.local/share/screenshooter-mcp"
+            touch "${HOME}/.local/share/screenshooter-mcp/.portal-authorized"
+          fi
+          AUTHSCRIPT
+          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
+
+          # portal auth service
+          cat > pkg/usr/lib/systemd/user/screenshooter-mcp-portal-auth.service << 'AUTHSERVICE'
+          [Unit]
+          Description=Pre-authorize screenshooter-mcp screenshot portal permission
+          After=xdg-desktop-portal.service
+          Wants=xdg-desktop-portal.service
+          ConditionPathExists=!%h/.local/share/screenshooter-mcp/.portal-authorized
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/lib/screenshooter-mcp/authorize-portal.sh
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=graphical-session.target
+          AUTHSERVICE
 
           cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
@@ -238,6 +309,7 @@ jobs:
           for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
             if [ -d "/run/user/$uid" ]; then
               su - "$(id -nu "$uid")" -c "systemctl --user daemon-reload" 2>/dev/null || true
+              su - "$(id -nu "$uid")" -c "systemctl --user enable --now screenshooter-mcp-portal-auth.service" 2>/dev/null || true
             fi
           done
           POSTINST
