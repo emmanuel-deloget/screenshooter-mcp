@@ -84,6 +84,11 @@ func main() {
 		serverURL = os.Args[1]
 	}
 
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create output directory: %v\n", err)
+		os.Exit(1)
+	}
+
 	ctx := context.Background()
 
 	mcp := &MCPServer{
@@ -98,62 +103,70 @@ func main() {
 		os.Exit(1)
 	}
 
-	monitors, err := mcp.listMonitors(ctx)
-	if err != nil {
+	allPassed := true
+	var monitors []map[string]any
+	var windows []map[string]any
+
+	if m, err := mcp.listMonitors(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "list_monitors failed: %v\n", err)
-		os.Exit(1)
+		allPassed = false
+	} else {
+		monitors = m
+		saveJSON(ctx, outputDir, "list_monitors.json", monitors)
 	}
 
-	saveJSON(ctx, outputDir, "list_monitors.json", monitors)
-
-	windows, err := mcp.listWindows(ctx)
-	if err != nil {
+	if w, err := mcp.listWindows(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "list_windows failed: %v\n", err)
-		os.Exit(1)
+		allPassed = false
+	} else {
+		windows = w
+		saveJSON(ctx, outputDir, "list_windows.json", windows)
 	}
 
-	saveJSON(ctx, outputDir, "list_windows.json", windows)
-
-	imgData, err := mcp.captureScreen(ctx, "")
-	if err != nil {
+	if imgData, err := mcp.captureScreen(ctx, ""); err != nil {
 		fmt.Fprintf(os.Stderr, "capture_screen failed: %v\n", err)
-		os.Exit(1)
+		allPassed = false
+	} else {
+		saveImage(ctx, outputDir, "capture_screen.png", imgData)
 	}
-
-	saveImage(ctx, outputDir, "capture_screen.png", imgData)
 
 	if len(monitors) > 0 {
 		firstMonitor := monitors[0]
 		if name, ok := firstMonitor["Name"].(string); ok {
-			imgData, err := mcp.captureScreen(ctx, name)
-			if err != nil {
+			if imgData, err := mcp.captureScreen(ctx, name); err != nil {
 				fmt.Fprintf(os.Stderr, "capture_screen (monitor %s) failed: %v\n", name, err)
-				os.Exit(1)
+				allPassed = false
+			} else {
+				saveImage(ctx, outputDir, "capture_screen-"+name+".png", imgData)
 			}
-			saveImage(ctx, outputDir, "capture_screen-"+name+".png", imgData)
 		}
 	}
 
 	if len(windows) > 0 {
 		firstWindow := windows[0]
 		if title, ok := firstWindow["Title"].(string); ok {
-			imgData, err := mcp.captureWindow(ctx, title)
-			if err != nil {
+			if imgData, err := mcp.captureWindow(ctx, title); err != nil {
 				fmt.Fprintf(os.Stderr, "capture_window (title %s) failed: %v\n", title, err)
-				os.Exit(1)
+				allPassed = false
+			} else {
+				saveImage(ctx, outputDir, "capture_window-"+title+".png", imgData)
 			}
-			saveImage(ctx, outputDir, "capture_window-"+title+".png", imgData)
 		}
 	}
 
-	imgData, err = mcp.captureRegion(ctx, 0, 0, 800, 600)
-	if err != nil {
+	if imgData, err := mcp.captureRegion(ctx, 0, 0, 800, 600); err != nil {
 		fmt.Fprintf(os.Stderr, "capture_region failed: %v\n", err)
+		allPassed = false
+	} else {
+		saveImage(ctx, outputDir, "capture_region.png", imgData)
+	}
+
+	if allPassed {
+		fmt.Println("All tests passed!")
+	} else {
+		fmt.Println("Some tests failed!")
 		os.Exit(1)
 	}
-	saveImage(ctx, outputDir, "capture_region.png", imgData)
-
-	fmt.Println("All tests passed!")
 }
 
 func (m *MCPServer) initialize(ctx context.Context) error {

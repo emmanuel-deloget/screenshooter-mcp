@@ -4,7 +4,7 @@
 #
 # This script runs inside the VM via SSH and coordinates all tests.
 
-set -e
+set -Ee
 
 VM_IP="$1"
 DISTRO="$2"
@@ -90,6 +90,21 @@ copy_to_vm "$PKG_FILE" "/tmp/package.deb"
 echo "  Package: $(basename "$PKG_FILE")"
 
 echo "[5/8] Installing package..."
+
+# case "${DESKTOP}-${MODE}" in
+# 	gnome-wayland)
+# 		run_on_vm "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
+# 			gdbus call --session \
+# 			--dest org.freedesktop.impl.portal.PermissionStore \
+# 			--object-path /org/freedesktop/impl/portal/PermissionStore \
+# 			--method org.freedesktop.impl.portal.PermissionStore.Set \
+# 			'screenshot' true 'screenshot' \"{'': ['yes']}\" \"<byte 0x00>\""
+# 		;;
+# 	*)
+# 		# nothing to do
+# 	;;
+# esac
+
 case "$DISTRO" in
 	debian|ubuntu)
 		run_on_vm "sudo dpkg -i /tmp/package.deb"
@@ -115,24 +130,30 @@ run_on_vm "systemctl --user is-active screenshooter-mcp.service" || {
 echo "  OK"
 
 echo "[7/8] Running MCP tools test..."
-# Run test-mcp inside VM
+TEST_FAILED=0
 run_on_vm "OUTPUT_DIR=$OUTPUT_DIR /tmp/test-mcp http://localhost:11777" || {
 	echo "ERROR: test-mcp failed"
-	exit 1
+	TEST_FAILED=1
 }
-echo "  OK"
+if [ "$TEST_FAILED" -eq 0 ]; then
+	echo "  OK"
+fi
 
 echo "[8/8] Downloading results..."
 IMAGES_DIR="${SCRIPT_DIR}/../images/${DISTRO}-${VERSION}-${DESKTOP}-${MODE}"
 mkdir -p "$IMAGES_DIR"
-run_on_vm "ls -la $OUTPUT_DIR/"
+run_on_vm "ls -la $OUTPUT_DIR/" || true
 run_on_vm "cd $OUTPUT_DIR && for f in *; do echo \"\$f\"; done" | while read -r f; do
 	if [ -n "$f" ] && [ "$f" != "*" ]; then
-		copy_from_vm "$OUTPUT_DIR/$f" "$IMAGES_DIR/$f"
+		copy_from_vm "$OUTPUT_DIR/$f" "$IMAGES_DIR/$f" || true
 	fi
 done
 echo "  Images saved to: $IMAGES_DIR"
 
 echo ""
+if [ "$TEST_FAILED" -ne 0 ]; then
+	echo "=== Test Completed with Errors ==="
+	exit 1
+fi
 echo "=== Test Completed Successfully ==="
 echo "Results: $IMAGES_DIR"

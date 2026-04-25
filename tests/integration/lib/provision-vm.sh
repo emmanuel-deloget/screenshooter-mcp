@@ -80,11 +80,6 @@ configure_display_mode_gnome_debian() {
 	esac
 
 	virt-customize -a "$VM_IMAGE" \
-		--run-command "mkdir -p /etc/dconf/db/local.d" \
-		--run-command "printf '[org/gnome/shell]\ndevelopment-tools=true\n' > /etc/dconf/db/local.d/00-screenshooter" \
-		--run-command "mkdir -p /etc/dconf/profile" \
-		--run-command "printf 'user-db:user\nsystem-db:local\nsystem-db:ibus\n' > /etc/dconf/profile/user" \
-		--run-command "dconf update" \
 		--run-command "sed -i 's/^#\s*AutomaticLoginEnable\s*=.*/AutomaticLoginEnable=true/' /etc/gdm3/daemon.conf" \
 		--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm3/daemon.conf"
 }
@@ -119,11 +114,6 @@ configure_display_gnome_mode_fedora() {
 
 	virt-customize -a "$VM_IMAGE" \
 		--run-command "grubby --update-kernel=ALL --args='console=ttyS0,115200n8'" \
-		--run-command "mkdir -p /etc/dconf/db/local.d" \
-		--run-command "printf '[org/gnome/shell]\ndevelopment-tools=true\n' > /etc/dconf/db/local.d/00-screenshooter" \
-		--run-command "mkdir -p /etc/dconf/profile" \
-		--run-command "printf 'user-db:user\nsystem-db:local\nsystem-db:ibus\n' > /etc/dconf/profile/user" \
-		--run-command "dconf update" \
 		--run-command "sed -i 's/^#\s*AutomaticLoginEnable\s*=.*/AutomaticLoginEnable=true/' /etc/gdm/custom.conf" \
 		--run-command "sed -i 's/^#\s*AutomaticLogin\s*=.*/AutomaticLogin=tester/' /etc/gdm/custom.conf"
 }
