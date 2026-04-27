@@ -213,10 +213,26 @@ jobs:
           VERSION="${VERSION#v}"
 
           mkdir -p pkg/usr/bin
+          mkdir -p pkg/etc/xdg/autostart
           mkdir -p pkg/etc/screenshooter-mcp
-
-          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+          mkdir -p pkg/usr/lib/screenshooter-mcp
+          mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
+          
+          cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
+          
           echo '{"log_level":"info","color":"auto"}' > pkg/etc/screenshooter-mcp/config.json
+          
+          cp scripts/packaging/com.deloget.ScreenshooterMCP-stdio.desktop pkg/etc/xdg/autostart/com.deloget.ScreenshooterMCP.desktop 
+          cp scripts/packaging/authorize-portal.sh pkg/usr/lib/screenshooter-mcp/authorize-portal.sh 
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+          
+          cp scripts/packaging/debian-postinst-stdio.sh control/postinst
+          cp scripts/packaging/debian-prerm-stdio.sh control/prerm
+          
+          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
+          chmod 755 pkg/usr/bin/screenshooter-mcp-stdio
+          chmod 755 control/postinst
+          chmod 755 control/prerm
 
           fpm -s dir -t deb \
             -C pkg \
@@ -227,7 +243,9 @@ jobs:
             --maintainer "Emmanuel Deloget <emmanuel@deloget.com>" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
             --license MIT \
-            --vendor "Emmanuel Deloget"
+            --vendor "Emmanuel Deloget" \
+            --after-install control/postinst \
+            --before-remove control/prerm
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -317,9 +335,26 @@ jobs:
           ARCH=${{ matrix.arch }}
 
           mkdir -p pkg/usr/bin
+          mkdir -p pkg/etc/xdg/autostart
           mkdir -p pkg/etc/screenshooter-mcp
-          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+          mkdir -p pkg/usr/lib/screenshooter-mcp
+          mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
+          
+          cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
+          
           echo '{"log_level":"info","color":"auto"}' > pkg/etc/screenshooter-mcp/config.json
+          
+          cp scripts/packaging/com.deloget.ScreenshooterMCP-stdio.desktop pkg/etc/xdg/autostart/com.deloget.ScreenshooterMCP.desktop 
+          cp scripts/packaging/authorize-portal.sh pkg/usr/lib/screenshooter-mcp/authorize-portal.sh 
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+          
+          cp scripts/packaging/fedora-postinst-stdio.sh control/postinst
+          cp scripts/packaging/fedora-prerm-stdio.sh control/prerm
+          
+          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
+          chmod 755 pkg/usr/bin/screenshooter-mcp-stdio
+          chmod 755 control/postinst
+          chmod 755 control/prerm
 
           fpm -s dir -t rpm \
             -C pkg \
@@ -330,7 +365,9 @@ jobs:
             --maintainer "Emmanuel Deloget <emmanuel@deloget.com>" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
             --license MIT \
-            --vendor "Emmanuel Deloget"
+            --vendor "Emmanuel Deloget" \
+            --after-install control/postinst \
+            --before-remove control/prerm
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
