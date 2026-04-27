@@ -58,7 +58,7 @@ cp /project/scripts/packaging/screenshooter-mcp-server.service pkg/usr/lib/syste
 cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
 
 cp /project/scripts/packaging/fedora-postinst-server.sh control/postinst
-cp /project/scripts/packaging/fedora-prerm-server.sh control/postinst
+cp /project/scripts/packaging/fedora-prerm-server.sh control/prerm
 
 chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
 chmod 755 control/postinst
