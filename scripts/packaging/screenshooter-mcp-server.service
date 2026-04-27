@@ -1,0 +1,16 @@
+[Unit]
+Description=Screenshooter MCP Server
+After=xdg-desktop-portal.service
+Wants=xdg-desktop-portal.service
+Requires=graphical-session.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/lib/screenshooter-mcp/authorize-portal.sh
+ExecStart=/usr/bin/screenshooter-mcp-server --listen 127.0.0.1:11777
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=30
+
+[Install]
+WantedBy=default.target
