@@ -7,7 +7,7 @@ require (
 	github.com/jezek/xgb v1.3.1
 	github.com/mattn/go-isatty v0.0.21
 	github.com/modelcontextprotocol/go-sdk v1.5.0
-	github.com/nskaggs/perfuncted v0.1.8
+	github.com/nskaggs/perfuncted v0.1.9
 	github.com/rs/zerolog v1.35.1
 )
 
