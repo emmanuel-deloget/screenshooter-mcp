@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Screenshooter MCP Stdio
+Exec=/usr/lib/screenshooter-mcp/authorize-portal.sh
+NoDisplay=true
