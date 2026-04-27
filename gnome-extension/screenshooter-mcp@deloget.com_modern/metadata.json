@@ -1,0 +1,7 @@
+{
+  "uuid": "screenshooter-mcp@deloget.com",
+  "name": "Screenshooter MCP",
+  "description": "Window management API for Screenshooter MCP",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "version": 1
+}

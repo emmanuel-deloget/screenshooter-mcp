@@ -50,6 +50,25 @@ copy_from_vm() {
 	$SCP "tester@${VM_IP}:${src}" "$dest"
 }
 
+wait_vm_state() {
+	local cmd="$1"
+	local expected="$2"
+	local cnt="$3"
+
+	[ -n "$cnt" ] || cnt=15
+
+	for i in $(seq 1 ${cnt}); do
+		r=$(run_on_vm "$cmd" || true)
+		[ "$r" = "$expected" ] && {
+			echo "  condition <$cmd> = <$expected> is true after $i seconds"
+			return 0
+		}
+		sleep 1
+	done
+	echo "  condition <$cmd> != <$expected> is true after $cnt seconds"
+	return 1
+}
+
 echo "[1/8] Waiting for VM to be ready..."
 if ! $SSH "echo ok" 2>/dev/null | grep -q ok; then
 	echo "ERROR: Cannot SSH to VM"
@@ -91,20 +110,6 @@ echo "  Package: $(basename "$PKG_FILE")"
 
 echo "[5/8] Installing package..."
 
-# case "${DESKTOP}-${MODE}" in
-# 	gnome-wayland)
-# 		run_on_vm "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
-# 			gdbus call --session \
-# 			--dest org.freedesktop.impl.portal.PermissionStore \
-# 			--object-path /org/freedesktop/impl/portal/PermissionStore \
-# 			--method org.freedesktop.impl.portal.PermissionStore.Set \
-# 			'screenshot' true 'screenshot' \"{'': ['yes']}\" \"<byte 0x00>\""
-# 		;;
-# 	*)
-# 		# nothing to do
-# 	;;
-# esac
-
 case "$DISTRO" in
 	debian|ubuntu)
 		run_on_vm "sudo dpkg -i /tmp/package.deb"
@@ -117,16 +122,35 @@ case "$DISTRO" in
 esac
 echo "  OK"
 
-echo "[6/8] Starting MCP server..."
+echo "[6/8] [1] Wait for a seat0 session..."
+for i in $(seq 1 20); do
+	session=$(run_on_vm "loginctl list-sessions --no-legend" | grep 'tester' | grep seat | awk '{ print $1 }')
+	[ -n "${session}" ] && {
+		echo "  ... session found: ${session}"
+		break
+	}
+	echo "  ... waited $i second(s)"
+	sleep 1
+done
+echo "  OK"
+
+echo "[6/8] [2] Starting MCP server..."
 run_on_vm "systemctl --user daemon-reload"
 run_on_vm "systemctl --user enable --now screenshooter-mcp.service"
+sleep 2
+echo "  OK"
+
+echo "[6/8] [3] restarting the user session"
+run_on_vm "sudo loginctl terminate-session ${session}" || true
+echo "  ... wait 3 seconds after terminate-session ${session}"
 sleep 3
-run_on_vm "systemctl --user is-active screenshooter-mcp.service" || {
-	echo "ERROR: MCP server failed to start"
-	run_on_vm "systemctl --user status screenshooter-mcp.service" || true
-	run_on_vm "journalctl --user -u screenshooter-mcp --no-pager -n 20" || true
-	exit 1
-}
+run_on_vm "sudo systemctl restart gdm" || true
+echo "  OK"
+
+echo "[6/8] [4] Wait for a seat0 session..."
+wait_vm_state "loginctl list-sessions --no-legend | grep tester | grep seat | grep -q '.' && echo yes" "yes"
+wait_vm_state "systemctl --user is-active screenshooter-mcp.service" "active"
+sleep 1
 echo "  OK"
 
 echo "[7/8] Running MCP tools test..."

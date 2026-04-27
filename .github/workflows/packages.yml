@@ -46,6 +46,40 @@ jobs:
       - name: Create tar.gz (server)
         run: |
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-server
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/legacy
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/modern
+          cp -fpR gnome-extension/screenshooter-mcp@deloget.com_legacy screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/legacy/screenshooter-mcp@deloget.com
+          cp -fpR gnome-extension/screenshooter-mcp@deloget.com_modern screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/modern/screenshooter-mcp@deloget.com
+          cat > README.txt << 'EOF'
+          # For gnome users
+          
+          ## Allowing screenshots
+          The first time the server will want to take a screenshot, it will ask for the authorization to the user
+          through a modal dialog. You can bypass this requirement in advance by using the following command line: 
+          
+          ```shell
+          gdbus call --session \
+            --dest org.freedesktop.impl.portal.PermissionStore \
+            --object-path /org/freedesktop/impl/portal/PermissionStore \
+            --method org.freedesktop.impl.portal.PermissionStore.Set \
+            "screenshot" true "screenshot" "{'': ['yes']}" "<byte 0x00>"
+          ```
+          
+          Keep in mind that this command line enables all applications to take screenshots (which is the
+          behavior of the authorization modal too).
+          
+          ## The gnome extension 'screenshooter-mcp@deloget.com'
+          If you are using gnome 43/44, please copy the content of dot.local/share/gnome-shell/extensions/legacy/
+          into your own .local/share/gnome-shell/extenstions/ directory. If you are using gnome 45+, please use
+          the content of dot.local/share/gnome-shell/extensions/modern/ instead.
+          
+          Once the extension has been copied, you need to log out from your graphical session and log back again
+          before you can enable the extension:
+          
+          ```shell
+          gnome-extensions enable screenshooter-mcp@deloget.com
+          ```
+          EOF
           cp screenshooter-mcp screenshooter-mcp-${{ matrix.arch }}-server/
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/etc/screenshooter-mcp
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > screenshooter-mcp-${{ matrix.arch }}-server/etc/screenshooter-mcp/config.json
@@ -54,6 +88,40 @@ jobs:
       - name: Create tar.gz (stdio)
         run: |
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/legacy
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/modern
+          cp -fpR gnome-extension/screenshooter-mcp@deloget.com_legacy screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/legacy/screenshooter-mcp@deloget.com
+          cp -fpR gnome-extension/screenshooter-mcp@deloget.com_modern screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/modern/screenshooter-mcp@deloget.com
+          cat > README.txt << 'EOF'
+          # For gnome users
+          
+          ## Allowing screenshots
+          The first time the server will want to take a screenshot, it will ask for the authorization to the user
+          through a modal dialog. You can bypass this requirement in advance by using the following command line: 
+          
+          ```shell
+          gdbus call --session \
+            --dest org.freedesktop.impl.portal.PermissionStore \
+            --object-path /org/freedesktop/impl/portal/PermissionStore \
+            --method org.freedesktop.impl.portal.PermissionStore.Set \
+            "screenshot" true "screenshot" "{'': ['yes']}" "<byte 0x00>"
+          ```
+          
+          Keep in mind that this command line enables all applications to take screenshots (which is the
+          behavior of the authorization modal too).
+          
+          ## The gnome extension 'screenshooter-mcp@deloget.com'
+          If you are using gnome 43/44, please copy the content of dot.local/share/gnome-shell/extensions/legacy/
+          into your own .local/share/gnome-shell/extenstions/ directory. If you are using gnome 45+, please use
+          the content of dot.local/share/gnome-shell/extensions/modern/ instead.
+          
+          Once the extension has been copied, you need to log out from your graphical session and log back again
+          before you can enable the extension:
+          
+          ```shell
+          gnome-extensions enable screenshooter-mcp@deloget.com
+          ```
+          EOF
           cp screenshooter-mcp screenshooter-mcp-${{ matrix.arch }}-stdio/
           tar -czvf screenshooter-mcp-${{ matrix.arch }}-stdio-static.tar.gz screenshooter-mcp-${{ matrix.arch }}-stdio/
 
@@ -102,67 +170,27 @@ jobs:
 
           mkdir -p pkg/usr/bin
           mkdir -p pkg/etc/screenshooter-mcp
+          mkdir -p pkg/etc/xdg/autostart
           mkdir -p pkg/usr/lib/systemd/user
           mkdir -p pkg/usr/lib/screenshooter-mcp
+          mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
           mkdir -p control
+          
+          cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
 
-          cat > pkg/usr/lib/screenshooter-mcp/authorize-portal.sh << 'AUTHSCRIPT'
-          #!/bin/sh
-          [ -f "${HOME}/.local/share/screenshooter-mcp/.portal-authorized" ] && exit 0
-          auth_screenshot() {
-            gdbus call --session \
-              --dest org.freedesktop.impl.portal.PermissionStore \
-              --object-path /org/freedesktop/impl/portal/PermissionStore \
-              --method org.freedesktop.impl.portal.PermissionStore.Set \
-              "screenshot" true "screenshot" "{'': ['yes']}" "<byte 0x00>"
-          }
-          if auth_screenshot; then
-            mkdir -p "${HOME}/.local/share/screenshooter-mcp"
-            touch "${HOME}/.local/share/screenshooter-mcp/.portal-authorized"
-          fi
-          AUTHSCRIPT
-          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
-
-          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
-          cat > pkg/usr/lib/systemd/user/screenshooter-mcp.service << 'SYSTEMD'
-          [Unit]
-          Description=Screenshooter MCP Server
-          After=xdg-desktop-portal.service
-          Wants=xdg-desktop-portal.service
 
-          [Service]
-          Type=simple
-          ExecStartPre=/usr/lib/screenshooter-mcp/authorize-portal.sh
-          ExecStart=/usr/bin/screenshooter-mcp-server --listen 127.0.0.1:11777
-          Restart=on-failure
+          cp scripts/packaging/com.deloget.ScreenshooterMCP-server.desktop pkg/etc/xdg/autostart/com.deloget.ScreenshooterMCP.desktop 
+          cp scripts/packaging/authorize-portal.sh pkg/usr/lib/screenshooter-mcp/authorize-portal.sh 
+          cp scripts/packaging/screenshooter-mcp-server.service pkg/usr/lib/systemd/user/screenshooter-mcp.service
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
 
-          [Install]
-          WantedBy=default.target
-          SYSTEMD
+          cp scripts/packaging/debian-postinst-server.sh control/postinst
+          cp scripts/packaging/debian-prerm-server.sh control/prerm
 
-          cat > control/postinst << 'POSTINST'
-          #!/bin/sh
-          set -e
-          for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
-            if [ -d "/run/user/$uid" ]; then
-              su - "$(id -nu "$uid")" -c "systemctl --user daemon-reload" 2>/dev/null || true
-              su - "$(id -nu "$uid")" -c "systemctl --user enable screenshooter-mcp.service" 2>/dev/null || true
-            fi
-          done
-          POSTINST
+          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
+          chmod 755 pkg/usr/bin/screenshooter-mcp-server
           chmod 755 control/postinst
-
-          cat > control/prerm << 'PRERM'
-          #!/bin/sh
-          set -e
-          for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
-            if [ -d "/run/user/$uid" ]; then
-              su - "$(id -nu "$uid")" -c "systemctl --user stop screenshooter-mcp.service" 2>/dev/null || true
-              su - "$(id -nu "$uid")" -c "systemctl --user disable screenshooter-mcp.service" 2>/dev/null || true
-            fi
-          done
-          PRERM
           chmod 755 control/prerm
 
           fpm -s dir -t deb \
@@ -185,10 +213,26 @@ jobs:
           VERSION="${VERSION#v}"
 
           mkdir -p pkg/usr/bin
+          mkdir -p pkg/etc/xdg/autostart
           mkdir -p pkg/etc/screenshooter-mcp
-
-          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+          mkdir -p pkg/usr/lib/screenshooter-mcp
+          mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
+          
+          cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
+          
           echo '{"log_level":"info","color":"auto"}' > pkg/etc/screenshooter-mcp/config.json
+          
+          cp scripts/packaging/com.deloget.ScreenshooterMCP-stdio.desktop pkg/etc/xdg/autostart/com.deloget.ScreenshooterMCP.desktop 
+          cp scripts/packaging/authorize-portal.sh pkg/usr/lib/screenshooter-mcp/authorize-portal.sh 
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+          
+          cp scripts/packaging/debian-postinst-stdio.sh control/postinst
+          cp scripts/packaging/debian-prerm-stdio.sh control/prerm
+          
+          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
+          chmod 755 pkg/usr/bin/screenshooter-mcp-stdio
+          chmod 755 control/postinst
+          chmod 755 control/prerm
 
           fpm -s dir -t deb \
             -C pkg \
@@ -199,7 +243,9 @@ jobs:
             --maintainer "Emmanuel Deloget <emmanuel@deloget.com>" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
             --license MIT \
-            --vendor "Emmanuel Deloget"
+            --vendor "Emmanuel Deloget" \
+            --after-install control/postinst \
+            --before-remove control/prerm
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -245,67 +291,27 @@ jobs:
 
           mkdir -p pkg/usr/bin
           mkdir -p pkg/etc/screenshooter-mcp
+          mkdir -p pkg/etc/xdg/autostart
           mkdir -p pkg/usr/lib/systemd/user
           mkdir -p pkg/usr/lib/screenshooter-mcp
+          mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
           mkdir -p control
 
-          cat > pkg/usr/lib/screenshooter-mcp/authorize-portal.sh << 'AUTHSCRIPT'
-          #!/bin/sh
-          [ -f "${HOME}/.local/share/screenshooter-mcp/.portal-authorized" ] && exit 0
-          auth_screenshot() {
-            gdbus call --session \
-              --dest org.freedesktop.impl.portal.PermissionStore \
-              --object-path /org/freedesktop/impl/portal/PermissionStore \
-              --method org.freedesktop.impl.portal.PermissionStore.Set \
-              "screenshot" true "screenshot" "{'': ['yes']}" "<byte 0x00>"
-          }
-          if auth_screenshot; then
-            mkdir -p "${HOME}/.local/share/screenshooter-mcp"
-            touch "${HOME}/.local/share/screenshooter-mcp/.portal-authorized"
-          fi
-          AUTHSCRIPT
-          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
+          cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
 
-          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
-          cat > pkg/usr/lib/systemd/user/screenshooter-mcp.service << 'SYSTEMD'
-          [Unit]
-          Description=Screenshooter MCP Server
-          After=xdg-desktop-portal.service
-          Wants=xdg-desktop-portal.service
 
-          [Service]
-          Type=simple
-          ExecStartPre=/usr/lib/screenshooter-mcp/authorize-portal.sh
-          ExecStart=/usr/bin/screenshooter-mcp-server --listen 127.0.0.1:11777
-          Restart=on-failure
+          cp scripts/packaging/com.deloget.ScreenshooterMCP-server.desktop pkg/etc/xdg/autostart/com.deloget.ScreenshooterMCP.desktop 
+          cp scripts/packaging/authorize-portal.sh pkg/usr/lib/screenshooter-mcp/authorize-portal.sh 
+          cp scripts/packaging/screenshooter-mcp-server.service pkg/usr/lib/systemd/user/screenshooter-mcp.service
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-server
 
-          [Install]
-          WantedBy=default.target
-          SYSTEMD
+          cp scripts/packaging/fedora-postinst-server.sh control/postinst
+          cp scripts/packaging/fedora-prerm-server.sh control/prerm
 
-          cat > control/postinst << 'POSTINST'
-          #!/bin/sh
-          set -e
-          for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
-            if [ -d "/run/user/$uid" ]; then
-              su - "$(id -nu "$uid")" -c "systemctl --user daemon-reload" 2>/dev/null || true
-              su - "$(id -nu "$uid")" -c "systemctl --user enable screenshooter-mcp.service" 2>/dev/null || true
-            fi
-          done
-          POSTINST
+          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
+          chmod 755 pkg/usr/bin/screenshooter-mcp-server
           chmod 755 control/postinst
-
-          cat > control/prerm << 'PRERM'
-          #!/bin/sh
-          set -e
-          for uid in $(loginctl list-users --no-legend 2>/dev/null | awk '{print $1}'); do
-            if [ -d "/run/user/$uid" ]; then
-              su - "$(id -nu "$uid")" -c "systemctl --user stop screenshooter-mcp.service" 2>/dev/null || true
-              su - "$(id -nu "$uid")" -c "systemctl --user disable screenshooter-mcp.service" 2>/dev/null || true
-            fi
-          done
-          PRERM
           chmod 755 control/prerm
 
           fpm -s dir -t rpm \
@@ -329,9 +335,26 @@ jobs:
           ARCH=${{ matrix.arch }}
 
           mkdir -p pkg/usr/bin
+          mkdir -p pkg/etc/xdg/autostart
           mkdir -p pkg/etc/screenshooter-mcp
-          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+          mkdir -p pkg/usr/lib/screenshooter-mcp
+          mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
+          
+          cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
+          
           echo '{"log_level":"info","color":"auto"}' > pkg/etc/screenshooter-mcp/config.json
+          
+          cp scripts/packaging/com.deloget.ScreenshooterMCP-stdio.desktop pkg/etc/xdg/autostart/com.deloget.ScreenshooterMCP.desktop 
+          cp scripts/packaging/authorize-portal.sh pkg/usr/lib/screenshooter-mcp/authorize-portal.sh 
+          cp screenshooter-mcp pkg/usr/bin/screenshooter-mcp-stdio
+          
+          cp scripts/packaging/fedora-postinst-stdio.sh control/postinst
+          cp scripts/packaging/fedora-prerm-stdio.sh control/prerm
+          
+          chmod 755 pkg/usr/lib/screenshooter-mcp/authorize-portal.sh
+          chmod 755 pkg/usr/bin/screenshooter-mcp-stdio
+          chmod 755 control/postinst
+          chmod 755 control/prerm
 
           fpm -s dir -t rpm \
             -C pkg \
@@ -342,7 +365,9 @@ jobs:
             --maintainer "Emmanuel Deloget <emmanuel@deloget.com>" \
             --url "https://github.com/emmanuel-deloget/screenshooter-mcp" \
             --license MIT \
-            --vendor "Emmanuel Deloget"
+            --vendor "Emmanuel Deloget" \
+            --after-install control/postinst \
+            --before-remove control/prerm
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

@@ -78,14 +78,17 @@ func NewWaylandCapture() (*WaylandCapture, error) {
 	logging.Debug().Msg("WaylandCapture creating window backend")
 	win, err := window.Open()
 	if err != nil {
-		logging.Warn().Err(err).Msg("Window backend unavailable, operating in degraded mode")
-		return &WaylandCapture{
-			screenBackend:   sc,
-			windowBackend:   nil,
-			windowAvailable: false,
-		}, nil
+		logging.Warn().Err(err).Msg("Window backend unavailable, try to use our Gnome extension")
+		win, err = NewGnomeManager()
+		if err != nil {
+			logging.Warn().Err(err).Msg("Window backend unavailable, operating in degraded mode")
+			return &WaylandCapture{
+				screenBackend:   sc,
+				windowBackend:   nil,
+				windowAvailable: false,
+			}, nil
+		}
 	}
-
 	logging.Debug().Msg("WaylandCapture created successfully")
 	return &WaylandCapture{
 		screenBackend:   sc,
