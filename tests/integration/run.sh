@@ -30,10 +30,15 @@ VERSION="$2"
 DESKTOP="$3"
 MODE="$4"
 KEEP_RUNNING=false
+NO_TEST=false
 
 for arg in "$@"; do
 	case "$arg" in
 		--keep-running)
+			KEEP_RUNNING=true
+			;;
+		--no-test)
+			NO_TEST=true
 			KEEP_RUNNING=true
 			;;
 	esac
@@ -165,19 +170,21 @@ echo "  Test tool ready"
 echo "[5/8] Downloading package..."
 "$LIB_DIR/download-package.sh" "$DISTRO"
 
-echo "[6/8] Running test inside VM..."
-"$LIB_DIR/test-mcp.sh" "$VM_IP" "$DISTRO" "$VERSION" "$DESKTOP" "$MODE"
-echo "  Test completed"
+if [ "$NO_TEST" = "false" ]; then
+	echo "[6/8] Running test inside VM..."
+	"$LIB_DIR/test-mcp.sh" "$VM_IP" "$DISTRO" "$VERSION" "$DESKTOP" "$MODE"
+	echo "  Test completed"
 
-echo "[7/8] Verifying results..."
-RESULTS_DIR="${IMAGES_DIR}/${DISTRO}-${VERSION}-${DESKTOP}-${MODE}"
-if [ -d "$RESULTS_DIR" ]; then
-	echo "  Results saved to: $RESULTS_DIR"
-	ls -la "$RESULTS_DIR/"
-else
-	echo "WARNING: No results directory found"
+	echo "[7/8] Verifying results..."
+	RESULTS_DIR="${IMAGES_DIR}/${DISTRO}-${VERSION}-${DESKTOP}-${MODE}"
+	if [ -d "$RESULTS_DIR" ]; then
+		echo "  Results saved to: $RESULTS_DIR"
+		ls -la "$RESULTS_DIR/"
+	else
+		echo "WARNING: No results directory found"
+	fi
+
+	echo ""
+	echo "=== Test Completed ==="
+	echo "Results: $RESULTS_DIR"
 fi
-
-echo ""
-echo "=== Test Completed ==="
-echo "Results: $RESULTS_DIR"
