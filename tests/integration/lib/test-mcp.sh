@@ -91,20 +91,6 @@ echo "  Package: $(basename "$PKG_FILE")"
 
 echo "[5/8] Installing package..."
 
-# case "${DESKTOP}-${MODE}" in
-# 	gnome-wayland)
-# 		run_on_vm "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
-# 			gdbus call --session \
-# 			--dest org.freedesktop.impl.portal.PermissionStore \
-# 			--object-path /org/freedesktop/impl/portal/PermissionStore \
-# 			--method org.freedesktop.impl.portal.PermissionStore.Set \
-# 			'screenshot' true 'screenshot' \"{'': ['yes']}\" \"<byte 0x00>\""
-# 		;;
-# 	*)
-# 		# nothing to do
-# 	;;
-# esac
-
 case "$DISTRO" in
 	debian|ubuntu)
 		run_on_vm "sudo dpkg -i /tmp/package.deb"
