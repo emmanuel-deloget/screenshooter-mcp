@@ -43,6 +43,12 @@ ssh_vm() {
 	ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i "${KEYS_DIR}/test-key" "tester@${ip}" "$@"
 }
 
+view_vm() {
+	local vm="$1"
+	shift
+	virt-viewer "${vm}"
+}
+
 scp_to_vm() {
 	local vm="$1"
 	local src="$2"
@@ -168,6 +174,14 @@ case "$COMMAND" in
 		shift 2
 		ssh_vm "$VM_NAME" "$@"
 		;;
+	view)
+		if [ -z "$VM_NAME" ]; then
+			echo "Usage: $0 view <vm-name>"
+			exit 1
+		fi
+		shift 1
+		view_vm "$VM_NAME"
+		;;
 	scp-to)
 		if [ -z "$VM_NAME" ]; then
 			echo "Usage: $0 scp-to <vm-name> <source> <dest>"
@@ -206,14 +220,15 @@ case "$COMMAND" in
 		echo "Usage: $0 <command> [args]"
 		echo ""
 		echo "Commands:"
-		echo "  destroy <vm-name>	 Destroy VM and remove image"
-		echo "  start <vm-name>	   Start a stopped VM"
-		echo "  stop <vm-name>		Stop a running VM"
-		echo "  ssh <vm-name> <cmd>   Run command via SSH"
-		echo "  scp-to <vm-name> <src> <dest>  Copy file to VM"
+		echo "  destroy <vm-name>	               Destroy VM and remove image"
+		echo "  start <vm-name>	                 Start a stopped VM"
+		echo "  stop <vm-name>		               Stop a running VM"
+		echo "  ssh <vm-name> <cmd>              Run command via SSH"
+		echo "  view <vm-name>                   start virt-viewer on the VM"
+		echo "  scp-to <vm-name> <src> <dest>    Copy file to VM"
 		echo "  scp-from <vm-name> <src> <dest>  Copy file from VM"
-		echo "  wait-ssh <vm-name> [timeout]  Wait for SSH to be ready"
-		echo "  ip <vm-name>		  Get VM IP address"
-		echo "  list				  List all test VMs"
+		echo "  wait-ssh <vm-name> [timeout]     Wait for SSH to be ready"
+		echo "  ip <vm-name>		                 Get VM IP address"
+		echo "  list				                     List all test VMs"
 		;;
 esac
