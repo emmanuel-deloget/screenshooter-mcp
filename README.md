@@ -36,6 +36,19 @@ This means:
 
 This design prioritizes convenience for AI agent use cases but may not be suitable for high-security environments. Future updates may restrict authorization to only the MCP server process.
 
+### GNOME Shell Extension
+
+**Server packages include a GNOME Shell extension** (`screenshooter-mcp@deloget.com`) that provides window management capabilities via D-Bus. This extension is required because modern GNOME Shell versions restrict access to `org.gnome.Shell.Eval()`, which the server previously used to enumerate and manage windows.
+
+The extension exposes the `org.screenshooter.mcp.Windows` D-Bus interface at `/org/screenshooter/mcp`, providing methods for listing windows, activating them, and manipulating their position and size. Two versions are bundled:
+
+| Version | GNOME Shell | API Style |
+|---------|-------------|-----------|
+| `legacy` | 43, 44 | Imports-based (`imports.gi`) |
+| `modern` | 45+ | ES modules (`gi://Gio`) |
+
+On first startup, the systemd service runs `authorize-portal.sh` which automatically detects the GNOME Shell version, copies the appropriate extension to `~/.local/share/gnome-shell/extensions/`, and enables it. The server then queries this D-Bus interface as a fallback when the standard window backend is unavailable.
+
 ### Static Binaries
 
 Pre-compiled static binaries are available for all other Linux distributions.
