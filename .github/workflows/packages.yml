@@ -46,6 +46,40 @@ jobs:
       - name: Create tar.gz (server)
         run: |
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-server
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/legacy
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/modern
+          cp -fpR gnome-extension/screenshooter-mcp@deloget.com_legacy screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/legacy/screenshooter-mcp@deloget.com
+          cp -fpR gnome-extension/screenshooter-mcp@deloget.com_modern screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/modern/screenshooter-mcp@deloget.com
+          cat > README.txt << 'EOF'
+          # For gnome users
+          
+          ## Allowing screenshots
+          The first time the server will want to take a screenshot, it will ask for the authorization to the user
+          through a modal dialog. You can bypass this requirement in advance by using the following command line: 
+          
+          ```shell
+          gdbus call --session \
+            --dest org.freedesktop.impl.portal.PermissionStore \
+            --object-path /org/freedesktop/impl/portal/PermissionStore \
+            --method org.freedesktop.impl.portal.PermissionStore.Set \
+            "screenshot" true "screenshot" "{'': ['yes']}" "<byte 0x00>"
+          ```
+          
+          Keep in mind that this command line enables all applications to take screenshots (which is the
+          behavior of the authorization modal too).
+          
+          ## The gnome extension 'screenshooter-mcp@deloget.com'
+          If you are using gnome 43/44, please copy the content of dot.local/share/gnome-shell/extensions/legacy/
+          into your own .local/share/gnome-shell/extenstions/ directory. If you are using gnome 45+, please use
+          the content of dot.local/share/gnome-shell/extensions/modern/ instead.
+          
+          Once the extension has been copied, you need to log out from your graphical session and log back again
+          before you can enable the extension:
+          
+          ```shell
+          gnome-extensions enable screenshooter-mcp@deloget.com
+          ```
+          EOF
           cp screenshooter-mcp screenshooter-mcp-${{ matrix.arch }}-server/
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/etc/screenshooter-mcp
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > screenshooter-mcp-${{ matrix.arch }}-server/etc/screenshooter-mcp/config.json
@@ -54,6 +88,40 @@ jobs:
       - name: Create tar.gz (stdio)
         run: |
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/legacy
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/modern
+          cp -fpR gnome-extension/screenshooter-mcp@deloget.com_legacy screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/legacy/screenshooter-mcp@deloget.com
+          cp -fpR gnome-extension/screenshooter-mcp@deloget.com_modern screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/modern/screenshooter-mcp@deloget.com
+          cat > README.txt << 'EOF'
+          # For gnome users
+          
+          ## Allowing screenshots
+          The first time the server will want to take a screenshot, it will ask for the authorization to the user
+          through a modal dialog. You can bypass this requirement in advance by using the following command line: 
+          
+          ```shell
+          gdbus call --session \
+            --dest org.freedesktop.impl.portal.PermissionStore \
+            --object-path /org/freedesktop/impl/portal/PermissionStore \
+            --method org.freedesktop.impl.portal.PermissionStore.Set \
+            "screenshot" true "screenshot" "{'': ['yes']}" "<byte 0x00>"
+          ```
+          
+          Keep in mind that this command line enables all applications to take screenshots (which is the
+          behavior of the authorization modal too).
+          
+          ## The gnome extension 'screenshooter-mcp@deloget.com'
+          If you are using gnome 43/44, please copy the content of dot.local/share/gnome-shell/extensions/legacy/
+          into your own .local/share/gnome-shell/extenstions/ directory. If you are using gnome 45+, please use
+          the content of dot.local/share/gnome-shell/extensions/modern/ instead.
+          
+          Once the extension has been copied, you need to log out from your graphical session and log back again
+          before you can enable the extension:
+          
+          ```shell
+          gnome-extensions enable screenshooter-mcp@deloget.com
+          ```
+          EOF
           cp screenshooter-mcp screenshooter-mcp-${{ matrix.arch }}-stdio/
           tar -czvf screenshooter-mcp-${{ matrix.arch }}-stdio-static.tar.gz screenshooter-mcp-${{ matrix.arch }}-stdio/
 
