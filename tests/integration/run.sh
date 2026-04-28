@@ -89,7 +89,7 @@ case "$DESKTOP" in
 esac
 
 case "${DISTRO}-${VERSION}-${DESKTOP}-${MODE}" in
-	fedora-43-gnome-x11|fedora-43-kde-x11)
+	fedora-43-gnome-x11|fedora-43-kde-x11|ubuntu-25.10-gnome-x11)
 		echo "Unsupported combination: ${DISTRO}, ${VERSION}, ${DESKTOP}, ${MODE}, ignoring"
 		exit 0
 		;;
