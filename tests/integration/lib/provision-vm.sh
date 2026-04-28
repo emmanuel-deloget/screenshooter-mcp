@@ -22,7 +22,7 @@ MODE="$4"
 if [ -z "$DISTRO" ] || [ -z "$VERSION" ] || [ -z "$DESKTOP" ] || [ -z "$MODE" ]; then
 	echo "Usage: $0 <distro> <version> <desktop> <mode>"
 	echo "  distro: debian, ubuntu, fedora"
-	echo "  version: 12, 13, 24.04, 25.10, 26.04, 42, 43"
+	echo "  version: 12, 13, 24.04, 25.10, 43 (depending on the <distro> name)"
 	echo "  desktop: gnome, kde"
 	echo "  mode: x11, wayland"
 	exit 1

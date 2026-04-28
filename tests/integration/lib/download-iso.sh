@@ -61,9 +61,6 @@ download_ubuntu() {
 		25.10)
 			iso_url="https://releases.ubuntu.com/25.10/ubuntu-25.10-live-server-amd64.iso"
 			;;
-		26.04)
-			iso_url="https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso"
-			;;
 		*)
 			echo "Unsupported Ubuntu version: $version"
 			return 1
@@ -100,7 +97,7 @@ main() {
 	if [ -z "$distro" ] || [ -z "$version" ] || [ -z "$desktop" ]; then
 		echo "Usage: $0 <distro> <version> <desktop>"
 		echo "  distro: debian, ubuntu, fedora"
-		echo "  version: 12, 13, 24.04, 25.10, 26.04, 42, 43"
+		echo "  version: 12, 13, 24.04, 25.10, 43 (depending on the <distro> name)"
 		echo "  desktop: gnome, kde"
 		exit 1
 	fi
