@@ -193,7 +193,8 @@ configure_display_kde_mode_fedora() {
 		--run-command "grubby --update-kernel=ALL --args='console=ttyS0,115200n8'" \
 		--run-command "mkdir -p /etc/sddm.conf.d" \
 		--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf" \
-		--run-command "printf '[General]\nDefaultSession=plasma-wayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+		--run-command "printf '[General]\nDefaultSession=plasma-wayland.desktop\n' > /etc/sddm.conf.d/wayland.conf" \
+		--firstboot-command "systemctl disable gdm && systemctl enable sddm && systemctl reboot"
 }
 
 configure_display_mode() {
