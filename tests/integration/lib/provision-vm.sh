@@ -62,6 +62,16 @@ chmod 0664 "$VM_IMAGE"
 chmod 0664 "$VM_IMAGE"
 
 # Configure X11/Wayland mode
+# Fix slow boot on Ubuntu: cloud-init searches multiple datasources with timeouts.
+# Restrict to NoCloud only (our seed ISO) to eliminate 60-120s boot delay.
+configure_ubuntu_fast_boot() {
+	local disk="$1"
+
+	virt-customize -a "$disk" \
+		--run-command "mkdir -p /etc/cloud/cloud.cfg.d" \
+		--run-command "printf 'datasource_list: [ NoCloud ]\n' > /etc/cloud/cloud.cfg.d/90_dpkg.cfg"
+}
+
 configure_display_mode_gnome_debian() {
 	local disk="$1"
 	local mode="$2"
@@ -186,12 +196,14 @@ configure_display_mode() {
 			configure_display_mode_gnome_debian "${disk}" "${mode}"
 			;;
 		ubuntu-gnome)
+			configure_ubuntu_fast_boot "${disk}"
 			configure_display_mode_gnome_ubuntu "${disk}" "${mode}"
 			;;
 		debian-kde)
 			configure_display_mode_kde_debian "${disk}" "${mode}"
 			;;
 		ubuntu-kde)
+			configure_ubuntu_fast_boot "${disk}"
 			configure_display_mode_kde_ubuntu "${disk}" "${mode}"
 			;;
 		fedora-gnome)
