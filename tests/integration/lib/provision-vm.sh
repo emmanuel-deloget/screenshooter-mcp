@@ -136,14 +136,11 @@ configure_display_mode_kde_debian() {
 	local mode="$2"
 	local version="$3"
 
-	# Install KDE portal backend for Wayland screenshot support
-	virt-customize -a "$VM_IMAGE" \
-		--install xdg-desktop-portal-kde
-
 	case "$mode" in
 		x11)
 			echo "Configuring for X11"
 			virt-customize -a "$VM_IMAGE" \
+				--install xdg-desktop-portal-kde \
 				--run-command "mkdir -p /etc/sddm.conf.d" \
 				--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf"
 			;;
@@ -152,6 +149,7 @@ configure_display_mode_kde_debian() {
 			# On Debian, the Wayland session is 'plasma' (plasma.desktop in wayland-sessions)
 			# DisplayServer=wayland tells SDDM to use wayland-sessions, not xsessions
 			virt-customize -a "$VM_IMAGE" \
+				--install xdg-desktop-portal-kde \
 				--run-command "mkdir -p /etc/sddm.conf.d" \
 				--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf" \
 				--run-command "printf '[General]\nDisplayServer=wayland\nDefaultSession=plasma.desktop\n' > /etc/sddm.conf.d/wayland.conf"
