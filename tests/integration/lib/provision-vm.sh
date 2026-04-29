@@ -177,12 +177,25 @@ configure_display_mode_kde_ubuntu() {
 			;;
 		wayland)
 			echo "Configuring for Wayland..."
-			# plasmawayland session requires plasma-workspace+plasma-session-wayland
-			virt-customize -a "$VM_IMAGE" \
-				--install sddm-theme-breeze,plasma-workspace,plasma-session-wayland \
-				--run-command "mkdir -p /etc/sddm.conf.d" \
-				--run-command "printf '[Autologin]\nUser=tester\nSession=plasmawayland\n' > /etc/sddm.conf.d/autologin.conf" \
-				--run-command "printf '[General]\nDefaultSession=plasmawayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+			if [ "$version" = "25.10" ]; then
+				virt-customize -a "$VM_IMAGE" \
+					--install sddm-theme-breeze,plasma-workspace,plasma-session-wayland \
+					--uninstall network-manager \
+					--run-command "mkdir -p /etc/sddm.conf.d" \
+					--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf" \
+					--run-command "printf '[General]\nDefaultSession=plasma.desktop\n' > /etc/sddm.conf.d/wayland.conf" \
+					--run-command "printf 'network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    enp1s0:\n      dhcp4: true\n      dhcp6: true\n' > /etc/netplan/00-installer-config.yaml" \
+					--run-command "netplan apply"
+
+			fi
+			if [ "$version" = "24.04" ]; then
+				virt-customize -a "$VM_IMAGE" \
+					--install network-manager,sddm-theme-breeze,plasma-workspace-wayland \
+					--run-command "systemctl enable NetworkManager || true" \
+					--run-command "mkdir -p /etc/sddm.conf.d" \
+					--run-command "printf '[Autologin]\nUser=tester\nSession=plasmawayland\n' > /etc/sddm.conf.d/autologin.conf" \
+					--run-command "printf '[General]\nDefaultSession=plasmawayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+			fi
 			;;
 	esac
 }
