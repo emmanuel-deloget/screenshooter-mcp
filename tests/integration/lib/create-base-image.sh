@@ -125,7 +125,7 @@ create_debian_image() {
 get_ubuntu_desktop_package() {
 	case "${1}" in
 	kde)
-		echo kde-plasma-desktop,sddm,sddm-theme-breeze
+		echo kde-plasma-desktop,sddm,sddm-theme-breeze,network-manager
 		;;
 	*)
 		echo ubuntu-desktop,gdm3
@@ -208,6 +208,7 @@ EOF
 		--run-command "systemctl enable qemu-guest-agent" \
 		--run-command "systemctl enable gdm3 || true" \
 		--run-command "systemctl enable sddm || true" \
+		--run-command "systemctl enable NetworkManager || true" \
 		--run-command "systemctl set-default graphical.target" \
 		--selinux-relabel || true
 }

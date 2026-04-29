@@ -161,7 +161,8 @@ configure_display_mode_kde_ubuntu() {
 
 	# Fix network: kde-plasma-desktop does not include network-manager
 	virt-customize -a "$VM_IMAGE" \
-		--install network-manager
+		--install network-manager \
+		--run-command "systemctl enable NetworkManager || true"
 
 	case "$mode" in
 		x11)
