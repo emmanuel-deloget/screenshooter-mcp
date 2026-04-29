@@ -14,4 +14,3 @@ ubuntu 24.04 kde wayland
 ubuntu 24.04 kde x11
 ubuntu 25.10 gnome wayland
 ubuntu 25.10 kde wayland
-ubuntu 25.10 kde x11
