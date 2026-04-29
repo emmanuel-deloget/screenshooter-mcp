@@ -75,6 +75,7 @@ configure_ubuntu_fast_boot() {
 configure_display_mode_gnome_debian() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	case "$mode" in
 		x11)
@@ -97,6 +98,7 @@ configure_display_mode_gnome_debian() {
 configure_display_mode_gnome_ubuntu() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	case "$mode" in
 		x11)
@@ -119,6 +121,7 @@ configure_display_mode_gnome_ubuntu() {
 configure_display_gnome_mode_fedora() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	# there is no x11 mode in fedora, but we still need to do some adjustment
 
@@ -131,6 +134,7 @@ configure_display_gnome_mode_fedora() {
 configure_display_mode_kde_debian() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	# Install KDE portal backend for Wayland screenshot support
 	virt-customize -a "$VM_IMAGE" \
@@ -158,6 +162,7 @@ configure_display_mode_kde_debian() {
 configure_display_mode_kde_ubuntu() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	# Fix network: kde-plasma-desktop does not include network-manager
 	virt-customize -a "$VM_IMAGE" \
@@ -187,6 +192,7 @@ configure_display_mode_kde_ubuntu() {
 configure_display_kde_mode_fedora() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	# there is no x11 mode in fedora, but we still need to do some adjustment
 
@@ -203,27 +209,28 @@ configure_display_mode() {
 	local mode="$2"
 	local distro="$3"
 	local desktop="$4"
+	local version="$5"
 
 	case "${distro}-${desktop}" in
 		debian-gnome)
-			configure_display_mode_gnome_debian "${disk}" "${mode}"
+			configure_display_mode_gnome_debian "${disk}" "${mode}" "${version}"
 			;;
 		ubuntu-gnome)
 			configure_ubuntu_fast_boot "${disk}"
-			configure_display_mode_gnome_ubuntu "${disk}" "${mode}"
+			configure_display_mode_gnome_ubuntu "${disk}" "${mode}" "${version}"
 			;;
 		debian-kde)
-			configure_display_mode_kde_debian "${disk}" "${mode}"
+			configure_display_mode_kde_debian "${disk}" "${mode}" "${version}"
 			;;
 		ubuntu-kde)
 			configure_ubuntu_fast_boot "${disk}"
-			configure_display_mode_kde_ubuntu "${disk}" "${mode}"
+			configure_display_mode_kde_ubuntu "${disk}" "${mode}" "${version}"
 			;;
 		fedora-gnome)
-			configure_display_gnome_mode_fedora "${disk}" "${mode}"
+			configure_display_gnome_mode_fedora "${disk}" "${mode}" "${version}"
 			;;
 		fedora-kde)
-			configure_display_kde_mode_fedora "${disk}" "${mode}"
+			configure_display_kde_mode_fedora "${disk}" "${mode}" "${version}"
 			;;
 	esac
 }
@@ -251,7 +258,7 @@ virt-customize -a "$VM_IMAGE" \
 		--run-command "mkdir -p /var/lib/systemd/linger" \
 		--run-command "touch /var/lib/systemd/linger/tester"
 
-configure_display_mode "$VM_IMAGE" "$MODE" "$DISTRO" "$DESKTOP"
+configure_display_mode "$VM_IMAGE" "$MODE" "$DISTRO" "$DESKTOP" "$VERSION"
 
 if ! virsh net-info default &>/dev/null; then
 	echo "Defining the 'default' network"
