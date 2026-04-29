@@ -286,6 +286,18 @@ func (m *MCPServer) callTool(ctx context.Context, params ToolCallParams) ([]map[
 		return nil, err
 	}
 
+	if isError, ok := result["isError"].(bool); ok && isError {
+		data, ok := result["content"].([]any)
+		if ok && len(data) > 0 {
+			if first, ok := data[0].(map[string]any); ok {
+				if text, ok := first["text"].(string); ok {
+					return nil, fmt.Errorf("tool returned error: %s", text)
+				}
+			}
+		}
+		return nil, fmt.Errorf("tool returned error (no details)")
+	}
+
 	data, ok := result["content"].([]any)
 	if !ok {
 		return nil, fmt.Errorf("unexpected result format")

@@ -78,16 +78,27 @@ enable_extension() {
 }
 
 # check if the portal is here
-gdbus call --session \
-	--dest org.freedesktop.DBus \
-	--object-path /org/freedesktop/DBus \
-	--method org.freedesktop.DBus.NameHasOwner \
-	"org.freedesktop.portal.Desktop" 2>/dev/null | grep -q "true"
+portal_available() {
+	gdbus call --session \
+		--dest org.freedesktop.DBus \
+		--object-path /org/freedesktop/DBus \
+		--method org.freedesktop.DBus.NameHasOwner \
+		"org.freedesktop.portal.Desktop" 2>/dev/null | grep -q "true"
+}
 
 if is_gnome_session; then
+	# On GNOME, the portal must be available for screenshot authorization
+	if ! portal_available; then
+		echo "ERROR: xdg-desktop-portal not available, cannot authorize screenshots"
+		exit 1
+	fi
+
 	# check is screenshooting is enabled
 	has_auth_screenshot || auth_screenshot || true
 
 	# check if out own extension is enabled
 	has_extension || enable_extension || true
+else
+	# check is screenshooting is enabled
+	has_auth_screenshot || auth_screenshot || true
 fi

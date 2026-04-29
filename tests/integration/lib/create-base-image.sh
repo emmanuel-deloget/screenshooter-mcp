@@ -24,7 +24,7 @@ DESKTOP="$3"
 if [ -z "$DISTRO" ] || [ -z "$VERSION" ] || [ -z "$DESKTOP" ]; then
 	echo "Usage: $0 <distro> <version> <desktop>"
 	echo "  distro: debian, ubuntu, fedora"
-	echo "  version: 12, 13, 24.04, 25.10, 26.04, 42, 43"
+	echo "  version: 12, 13, 24.04, 25.10, 43 (depending on the <distro> name)"
 	echo "  desktop: gnome, kde"
 	exit 1
 fi
@@ -125,7 +125,7 @@ create_debian_image() {
 get_ubuntu_desktop_package() {
 	case "${1}" in
 	kde)
-		echo kde-plasma-desktop,sddm,sddm-theme-breeze
+		echo kde-plasma-desktop,sddm,sddm-theme-breeze,network-manager
 		;;
 	*)
 		echo ubuntu-desktop,gdm3
@@ -208,6 +208,7 @@ EOF
 		--run-command "systemctl enable qemu-guest-agent" \
 		--run-command "systemctl enable gdm3 || true" \
 		--run-command "systemctl enable sddm || true" \
+		--run-command "systemctl enable NetworkManager || true" \
 		--run-command "systemctl set-default graphical.target" \
 		--selinux-relabel || true
 }

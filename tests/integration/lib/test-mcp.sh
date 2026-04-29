@@ -122,16 +122,20 @@ case "$DISTRO" in
 esac
 echo "  OK"
 
-echo "[6/8] [1] Wait for a seat0 session..."
-for i in $(seq 1 20); do
-	session=$(run_on_vm "loginctl list-sessions --no-legend" | grep 'tester' | grep seat | awk '{ print $1 }')
-	[ -n "${session}" ] && {
-		echo "  ... session found: ${session}"
-		break
-	}
-	echo "  ... waited $i second(s)"
-	sleep 1
-done
+if [ "$DESKTOP" = "gnome" ] && [ "$MODE" == "wayland" ]; then
+	echo "[6/8] [1] Wait for a seat0 session..."
+	for i in $(seq 1 20); do
+		session=$(run_on_vm "loginctl list-sessions --no-legend" | grep 'tester' | grep seat | awk '{ print $1 }')
+		[ -n "${session}" ] && {
+			echo "  ... session found: ${session}"
+			break
+		}
+		echo "  ... waited $i second(s)"
+		sleep 1
+	done
+else
+	echo "[6/8] [1] nothing to do..."
+fi
 echo "  OK"
 
 echo "[6/8] [2] Starting MCP server..."
@@ -140,18 +144,20 @@ run_on_vm "systemctl --user enable --now screenshooter-mcp.service"
 sleep 2
 echo "  OK"
 
-echo "[6/8] [3] restarting the user session"
-run_on_vm "sudo loginctl terminate-session ${session}" || true
-echo "  ... wait 3 seconds after terminate-session ${session}"
-sleep 3
-run_on_vm "sudo systemctl restart gdm" || true
-echo "  OK"
+if [ "$DESKTOP" = "gnome" ] && [ "$MODE" == "wayland" ]; then
+	echo "[6/8] [3] restarting the user session"
+	run_on_vm "sudo loginctl terminate-session ${session}" || true
+	echo "  ... wait 3 seconds after terminate-session ${session}"
+	sleep 3
+	run_on_vm "sudo systemctl restart gdm" || true
+	echo "  OK"
 
-echo "[6/8] [4] Wait for a seat0 session..."
-wait_vm_state "loginctl list-sessions --no-legend | grep tester | grep seat | grep -q '.' && echo yes" "yes"
-wait_vm_state "systemctl --user is-active screenshooter-mcp.service" "active"
-sleep 1
-echo "  OK"
+	echo "[6/8] [4] Wait for a seat0 session..."
+	wait_vm_state "loginctl list-sessions --no-legend | grep tester | grep seat | grep -q '.' && echo yes" "yes"
+	wait_vm_state "systemctl --user is-active screenshooter-mcp.service" "active"
+	sleep 1
+	echo "  OK"
+fi
 
 echo "[7/8] Running MCP tools test..."
 TEST_FAILED=0

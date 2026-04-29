@@ -22,7 +22,7 @@ MODE="$4"
 if [ -z "$DISTRO" ] || [ -z "$VERSION" ] || [ -z "$DESKTOP" ] || [ -z "$MODE" ]; then
 	echo "Usage: $0 <distro> <version> <desktop> <mode>"
 	echo "  distro: debian, ubuntu, fedora"
-	echo "  version: 12, 13, 24.04, 25.10, 26.04, 42, 43"
+	echo "  version: 12, 13, 24.04, 25.10, 43 (depending on the <distro> name)"
 	echo "  desktop: gnome, kde"
 	echo "  mode: x11, wayland"
 	exit 1
@@ -62,9 +62,20 @@ chmod 0664 "$VM_IMAGE"
 chmod 0664 "$VM_IMAGE"
 
 # Configure X11/Wayland mode
+# Fix slow boot on Ubuntu: cloud-init searches multiple datasources with timeouts.
+# Restrict to NoCloud only (our seed ISO) to eliminate 60-120s boot delay.
+configure_ubuntu_fast_boot() {
+	local disk="$1"
+
+	virt-customize -a "$disk" \
+		--run-command "mkdir -p /etc/cloud/cloud.cfg.d" \
+		--run-command "printf 'datasource_list: [ NoCloud ]\n' > /etc/cloud/cloud.cfg.d/90_dpkg.cfg"
+}
+
 configure_display_mode_gnome_debian() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	case "$mode" in
 		x11)
@@ -87,6 +98,7 @@ configure_display_mode_gnome_debian() {
 configure_display_mode_gnome_ubuntu() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	case "$mode" in
 		x11)
@@ -109,6 +121,7 @@ configure_display_mode_gnome_ubuntu() {
 configure_display_gnome_mode_fedora() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	# there is no x11 mode in fedora, but we still need to do some adjustment
 
@@ -121,20 +134,25 @@ configure_display_gnome_mode_fedora() {
 configure_display_mode_kde_debian() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	case "$mode" in
 		x11)
 			echo "Configuring for X11"
 			virt-customize -a "$VM_IMAGE" \
+				--install xdg-desktop-portal-kde \
 				--run-command "mkdir -p /etc/sddm.conf.d" \
 				--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf"
 			;;
 		wayland)
 			echo "Configuring for Wayland..."
+			# On Debian, the Wayland session is 'plasma' (plasma.desktop in wayland-sessions)
+			# DisplayServer=wayland tells SDDM to use wayland-sessions, not xsessions
 			virt-customize -a "$VM_IMAGE" \
+				--install xdg-desktop-portal-kde \
 				--run-command "mkdir -p /etc/sddm.conf.d" \
-				--run-command "printf '[Autologin]\nUser=tester\nSession=plasmawayland\n' > /etc/sddm.conf.d/autologin.conf" \
-				--run-command "printf '[General]\nDefaultSession=plasmawayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+				--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf" \
+				--run-command "printf '[General]\nDisplayServer=wayland\nDefaultSession=plasma.desktop\n' > /etc/sddm.conf.d/wayland.conf"
 			;;
 	esac
 }
@@ -142,6 +160,12 @@ configure_display_mode_kde_debian() {
 configure_display_mode_kde_ubuntu() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
+
+	# Fix network: kde-plasma-desktop does not include network-manager
+	virt-customize -a "$VM_IMAGE" \
+		--install network-manager \
+		--run-command "systemctl enable NetworkManager || true"
 
 	case "$mode" in
 		x11)
@@ -153,11 +177,25 @@ configure_display_mode_kde_ubuntu() {
 			;;
 		wayland)
 			echo "Configuring for Wayland..."
-			virt-customize -a "$VM_IMAGE" \
-				--install sddm-theme-breeze \
-				--run-command "mkdir -p /etc/sddm.conf.d" \
-				--run-command "printf '[Autologin]\nUser=tester\nSession=plasmawayland\n' > /etc/sddm.conf.d/autologin.conf" \
-				--run-command "printf '[General]\nDefaultSession=plasmawayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+			if [ "$version" = "25.10" ]; then
+				virt-customize -a "$VM_IMAGE" \
+					--install sddm-theme-breeze,plasma-workspace,plasma-session-wayland \
+					--uninstall network-manager \
+					--run-command "mkdir -p /etc/sddm.conf.d" \
+					--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf" \
+					--run-command "printf '[General]\nDefaultSession=plasma.desktop\n' > /etc/sddm.conf.d/wayland.conf" \
+					--run-command "printf 'network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    enp1s0:\n      dhcp4: true\n      dhcp6: true\n' > /etc/netplan/00-installer-config.yaml" \
+					--run-command "netplan apply"
+
+			fi
+			if [ "$version" = "24.04" ]; then
+				virt-customize -a "$VM_IMAGE" \
+					--install network-manager,sddm-theme-breeze,plasma-workspace-wayland \
+					--run-command "systemctl enable NetworkManager || true" \
+					--run-command "mkdir -p /etc/sddm.conf.d" \
+					--run-command "printf '[Autologin]\nUser=tester\nSession=plasmawayland\n' > /etc/sddm.conf.d/autologin.conf" \
+					--run-command "printf '[General]\nDefaultSession=plasmawayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+			fi
 			;;
 	esac
 }
@@ -165,6 +203,7 @@ configure_display_mode_kde_ubuntu() {
 configure_display_kde_mode_fedora() {
 	local disk="$1"
 	local mode="$2"
+	local version="$3"
 
 	# there is no x11 mode in fedora, but we still need to do some adjustment
 
@@ -172,7 +211,8 @@ configure_display_kde_mode_fedora() {
 		--run-command "grubby --update-kernel=ALL --args='console=ttyS0,115200n8'" \
 		--run-command "mkdir -p /etc/sddm.conf.d" \
 		--run-command "printf '[Autologin]\nUser=tester\nSession=plasma\n' > /etc/sddm.conf.d/autologin.conf" \
-		--run-command "printf '[General]\nDefaultSession=plasma-wayland.desktop\n' > /etc/sddm.conf.d/wayland.conf"
+		--run-command "printf '[General]\nDefaultSession=plasma-wayland.desktop\n' > /etc/sddm.conf.d/wayland.conf" \
+		--firstboot-command "systemctl disable gdm && systemctl enable sddm && systemctl reboot"
 }
 
 configure_display_mode() {
@@ -180,25 +220,28 @@ configure_display_mode() {
 	local mode="$2"
 	local distro="$3"
 	local desktop="$4"
+	local version="$5"
 
 	case "${distro}-${desktop}" in
 		debian-gnome)
-			configure_display_mode_gnome_debian "${disk}" "${mode}"
+			configure_display_mode_gnome_debian "${disk}" "${mode}" "${version}"
 			;;
 		ubuntu-gnome)
-			configure_display_mode_gnome_ubuntu "${disk}" "${mode}"
+			configure_ubuntu_fast_boot "${disk}"
+			configure_display_mode_gnome_ubuntu "${disk}" "${mode}" "${version}"
 			;;
 		debian-kde)
-			configure_display_mode_kde_debian "${disk}" "${mode}"
+			configure_display_mode_kde_debian "${disk}" "${mode}" "${version}"
 			;;
 		ubuntu-kde)
-			configure_display_mode_kde_ubuntu "${disk}" "${mode}"
+			configure_ubuntu_fast_boot "${disk}"
+			configure_display_mode_kde_ubuntu "${disk}" "${mode}" "${version}"
 			;;
 		fedora-gnome)
-			configure_display_gnome_mode_fedora "${disk}" "${mode}"
+			configure_display_gnome_mode_fedora "${disk}" "${mode}" "${version}"
 			;;
 		fedora-kde)
-			configure_display_kde_mode_fedora "${disk}" "${mode}"
+			configure_display_kde_mode_fedora "${disk}" "${mode}" "${version}"
 			;;
 	esac
 }
@@ -226,7 +269,7 @@ virt-customize -a "$VM_IMAGE" \
 		--run-command "mkdir -p /var/lib/systemd/linger" \
 		--run-command "touch /var/lib/systemd/linger/tester"
 
-configure_display_mode "$VM_IMAGE" "$MODE" "$DISTRO" "$DESKTOP"
+configure_display_mode "$VM_IMAGE" "$MODE" "$DISTRO" "$DESKTOP" "$VERSION"
 
 if ! virsh net-info default &>/dev/null; then
 	echo "Defining the 'default' network"

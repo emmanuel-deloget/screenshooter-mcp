@@ -4,7 +4,7 @@
 #
 # Supported distributions:
 #   - debian: 12, 13
-#   - ubuntu: 24.04, 25.10, 26.04
+#   - ubuntu: 24.04, 25.10
 #   - fedora: 43
 #
 # Supported desktops: gnome, kde
@@ -49,7 +49,7 @@ if [ -z "$DISTRO" ] || [ -z "$VERSION" ] || [ -z "$DESKTOP" ] || [ -z "$MODE" ];
 	echo ""
 	echo "Supported distributions:"
 	echo "  - debian: 12, 13"
-	echo "  - ubuntu: 24.04, 25.10, 26.04"
+	echo "  - ubuntu: 24.04, 25.10"
 	echo "  - fedora: 43"
 	echo ""
 	echo "Supported desktops: gnome, kde"
@@ -89,9 +89,19 @@ case "$DESKTOP" in
 esac
 
 case "${DISTRO}-${VERSION}-${DESKTOP}-${MODE}" in
-	fedora-43-gnome-x11|fedora-43-kde-x11)
+	fedora-43-gnome-x11|fedora-43-kde-x11|ubuntu-25.10-gnome-x11|ubuntu-25.10-kde-x11)
 		echo "Unsupported combination: ${DISTRO}, ${VERSION}, ${DESKTOP}, ${MODE}, ignoring"
 		exit 0
+		;;
+	ubuntu-24.04-*|ubuntu-25.10-*)
+		;;
+	debian-1[23]-*)
+		;;
+	fedora-43-*)
+		;;
+	*)
+		echo "unsupported configuration of distribution $DISTRO and version $VERSION"
+		exit 1
 		;;
 esac
 

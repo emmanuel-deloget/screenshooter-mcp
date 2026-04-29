@@ -186,15 +186,42 @@ Arguments:
 
 ## Testing
 
-Integration tests in `tests/integration/` create VMs using KVM/libvirt to test the MCP server end-to-end. They are designed to run on a Debian/Ubuntu workstation with KVM virtualization enabled.
+Integration tests create VMs using KVM/libvirt to test the MCP server end-to-end across supported desktop environments. Each test provisions a VM, installs the server, and runs MCP tool calls (`list_monitors`, `list_windows`, `capture_screen`, `capture_region`) against it.
 
-To run a test:
+To run a single test:
 ```bash
 cd tests/integration
 ./run.sh debian 12 gnome wayland
 ```
 
+To run all tests:
+```bash
+cd tests/integration
+./all.sh
+```
+
 See `tests/integration/README.md` for requirements and supported configurations.
+
+### Test Results
+
+| Distribution / Version | Desktop / Mode | Status | Notes |
+|------------------------|----------------|--------|-------|
+| Debian 12 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Debian 12 | GNOME / X11 | PASS |  |
+| Debian 12 | KDE / Wayland | PASS | |
+| Debian 12 | KDE / X11 | PASS |  |
+| Debian 13 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Debian 13 | GNOME / X11 | PASS |  |
+| Debian 13 | KDE / Wayland | PASS | |
+| Debian 13 | KDE / X11 | PASS |  |
+| Fedora 43 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Fedora 43 | KDE / Wayland | PASS | |
+| Ubuntu 24.04 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Ubuntu 24.04 | GNOME / X11 | PASS |  |
+| Ubuntu 24.04 | KDE / Wayland | FAIL | `list_windows` times out — KWin 5 (Plasma 5) uses `clientList()` API, upstream `perfuncted` library only supports KWin 6 `windowList()` |
+| Ubuntu 24.04 | KDE / X11 | PASS |  |
+| Ubuntu 25.10 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Ubuntu 25.10 | KDE / Wayland | PASS | KWin 6 (Plasma 6) — `windowList()` API supported |
 
 ## License
 
