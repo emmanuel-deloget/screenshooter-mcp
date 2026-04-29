@@ -3,6 +3,7 @@ package wayland
 import (
 	"context"
 	"fmt"
+	"iter"
 
 	"github.com/godbus/dbus/v5"
 	"github.com/nskaggs/perfuncted/window"
@@ -28,31 +29,47 @@ func NewGnomeManager() (*GnomeManager, error) {
 	// Probe
 	var windows []map[string]dbus.Variant
 	if err := obj.Call(gnomeExtIface+".List", 0).Store(&windows); err != nil {
+		_ = conn.Close()
 		return nil, fmt.Errorf("gnome: extension not available: %w", err)
 	}
 	return &GnomeManager{conn: conn, obj: obj}, nil
 }
 
 func (g *GnomeManager) List(ctx context.Context) ([]window.Info, error) {
-	var raw []map[string]dbus.Variant
-	if err := g.obj.CallWithContext(ctx, gnomeExtIface+".List", 0).Store(&raw); err != nil {
-		return nil, fmt.Errorf("gnome: list: %w", err)
-	}
-	out := make([]window.Info, 0, len(raw))
-	for _, e := range raw {
-		out = append(out, window.Info{
-			ID:        e["id"].Value().(uint64),
-			Title:     e["title"].Value().(string),
-			PID:       e["pid"].Value().(int32),
-			X:         int(e["x"].Value().(int32)),
-			Y:         int(e["y"].Value().(int32)),
-			W:         int(e["w"].Value().(int32)),
-			H:         int(e["h"].Value().(int32)),
-			Minimized: e["minimized"].Value().(bool),
-			Maximized: e["maximized"].Value().(bool),
-		})
+	var out []window.Info
+	for win, err := range g.IterateWindows(ctx) {
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, win)
 	}
 	return out, nil
+}
+
+func (g *GnomeManager) IterateWindows(ctx context.Context) iter.Seq2[window.Info, error] {
+	return func(yield func(window.Info, error) bool) {
+		var raw []map[string]dbus.Variant
+		if err := g.obj.CallWithContext(ctx, gnomeExtIface+".List", 0).Store(&raw); err != nil {
+			yield(window.Info{}, fmt.Errorf("gnome: list: %w", err))
+			return
+		}
+		for _, e := range raw {
+			w := window.Info{
+				ID:        e["id"].Value().(uint64),
+				Title:     e["title"].Value().(string),
+				PID:       e["pid"].Value().(int32),
+				X:         int(e["x"].Value().(int32)),
+				Y:         int(e["y"].Value().(int32)),
+				W:         int(e["w"].Value().(int32)),
+				H:         int(e["h"].Value().(int32)),
+				Minimized: e["minimized"].Value().(bool),
+				Maximized: e["maximized"].Value().(bool),
+			}
+			if !yield(w, nil) {
+				return
+			}
+		}
+	}
 }
 
 func (g *GnomeManager) Activate(ctx context.Context, title string) error {
