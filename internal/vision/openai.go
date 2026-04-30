@@ -2,7 +2,11 @@ package vision
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"time"
+
+	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/config"
 )
@@ -41,5 +45,45 @@ func (p *openAICompatibleProvider) ModelName() string {
 }
 
 func (p *openAICompatibleProvider) Analyze(ctx context.Context, image []byte, prompt string) (string, error) {
-	return "", fmt.Errorf("openai-compatible provider not yet implemented")
+	cfg := openai.DefaultConfig(p.apiKey)
+	if p.baseURL != "" {
+		cfg.BaseURL = p.baseURL
+	}
+	client := openai.NewClientWithConfig(cfg)
+
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.timeout)*time.Second)
+	defer cancel()
+
+	base64Image := base64.StdEncoding.EncodeToString(image)
+
+	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: p.model,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role: openai.ChatMessageRoleUser,
+				MultiContent: []openai.ChatMessagePart{
+					{
+						Type: openai.ChatMessagePartTypeText,
+						Text: prompt,
+					},
+					{
+						Type: openai.ChatMessagePartTypeImageURL,
+						ImageURL: &openai.ChatMessageImageURL{
+							URL:    "data:image/png;base64," + base64Image,
+							Detail: openai.ImageURLDetailAuto,
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("chat completion failed: %w", err)
+	}
+
+	if len(resp.Choices) == 0 {
+		return "", fmt.Errorf("no response from provider %s", p.name)
+	}
+
+	return resp.Choices[0].Message.Content, nil
 }

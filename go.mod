@@ -10,6 +10,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.5.0
 	github.com/nskaggs/perfuncted v0.2.0
 	github.com/rs/zerolog v1.35.1
+	github.com/sashabaranov/go-openai v1.41.2
 )
 
 require (
