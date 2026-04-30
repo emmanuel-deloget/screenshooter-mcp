@@ -50,7 +50,7 @@ jobs:
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/modern
           cp -fpR gnome-extension/screenshooter-mcp@deloget.com_legacy screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/legacy/screenshooter-mcp@deloget.com
           cp -fpR gnome-extension/screenshooter-mcp@deloget.com_modern screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/modern/screenshooter-mcp@deloget.com
-          cat > README.txt << 'EOF'
+          cat > screenshooter-mcp-${{ matrix.arch }}-server/README.txt << 'EOF'
           # For gnome users
           
           ## Allowing screenshots
@@ -92,7 +92,7 @@ jobs:
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/modern
           cp -fpR gnome-extension/screenshooter-mcp@deloget.com_legacy screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/legacy/screenshooter-mcp@deloget.com
           cp -fpR gnome-extension/screenshooter-mcp@deloget.com_modern screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/modern/screenshooter-mcp@deloget.com
-          cat > README.txt << 'EOF'
+          cat > screenshooter-mcp-${{ matrix.arch }}-stdio/README.txt << 'EOF'
           # For gnome users
           
           ## Allowing screenshots
