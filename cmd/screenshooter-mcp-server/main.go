@@ -33,6 +33,10 @@
 //   - capture_screen: Captures the full screen or a specific monitor
 //   - capture_window: Captures a specific window by its title (partial match supported)
 //   - capture_region: Captures a region from the virtual screen
+//   - list_vision_providers: Lists configured AI vision providers
+//   - analyze_image: Analyzes an image with a custom prompt
+//   - extract_text: Extracts text from an image as formatted markdown
+//   - find_region: Finds bounding box coordinates of a described element
 //
 // Usage:
 //
@@ -173,8 +177,10 @@ func main() {
 //   - For X11: Uses xgb for RANDR monitor enumeration and perfuncted for capture
 //   - For Wayland: Uses perfuncted (portal-based) for capture
 //
-// Once the capture backend is created, all five MCP tools are registered:
-// list_monitors, list_windows, capture_screen, capture_window, and capture_region.
+// Once the capture backend is created, all MCP tools are registered:
+// list_monitors, list_windows, capture_screen, capture_window, capture_region,
+// and vision tools (list_vision_providers, analyze_image, extract_text, find_region)
+// if vision providers are configured.
 // The server then runs indefinitely, processing MCP requests via stdio.
 //
 // Returns an error if:
@@ -405,12 +411,16 @@ type findRegionInput struct {
 
 // registerTools registers all MCP tools with the server.
 //
-// This function creates and registers five MCP tools with the MCP server:
+// This function creates and registers MCP tools with the MCP server:
 //  1. list_monitors - Lists all available monitors with their names and aliases
 //  2. list_windows - Lists all open windows with their titles and IDs
 //  3. capture_screen - Captures the full screen or a specific monitor
 //  4. capture_window - Captures a specific window by its title
 //  5. capture_region - Captures a region from the virtual screen
+//  6. list_vision_providers - Lists configured vision providers
+//  7. analyze_image - Analyzes an image with a custom prompt
+//  8. extract_text - Extracts text from an image as markdown
+//  9. find_region - Finds bounding box coordinates of a described element
 //
 // Each tool is wrapped with error handling that:
 //   - Logs the tool call with parameters for debugging

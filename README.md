@@ -8,11 +8,20 @@ MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 
 ## Features
 
+### Screen Capture
+
 - **list_monitors** - List available displays with names, positions, and dimensions
 - **list_windows** - List open windows with titles and IDs
 - **capture_screen** - Capture full screen or specific monitor (returns PNG)
 - **capture_window** - Capture window by title (partial match supported)
 - **capture_region** - Capture rectangular region from screen (returns PNG)
+
+### AI Vision Analysis
+
+- **list_vision_providers** - List configured AI vision providers
+- **analyze_image** - Analyze an image with a custom prompt
+- **extract_text** - Extract text as formatted markdown (OCR)
+- **find_region** - Find bounding box coordinates of a described element
 
 ## Installation
 
@@ -99,6 +108,7 @@ Options:
 | `log_level` | string | `"info"` | Log level: debug, info, warn, error |
 | `color` | string | `"auto"` | Color output: always, never, auto |
 | `listen` | string | `""` | HTTP listen address or empty for stdio |
+| `vision` | object | `null` | AI vision providers configuration |
 
 ### CLI Options
 
@@ -172,6 +182,84 @@ Arguments:
 - `y`: Y coordinate
 - `width`: Width
 - `height`: Height
+
+### list_vision_providers
+
+List all configured AI vision providers with their names, models, and default status.
+
+### analyze_image
+
+Analyze an image using AI vision providers with a custom prompt.
+
+Arguments:
+- `image_base64`: Base64-encoded PNG image data
+- `prompt`: Text prompt describing what analysis to perform
+- `provider` (optional): Provider name; uses default if not specified
+
+### extract_text
+
+Extract text from an image as formatted markdown (OCR).
+
+Arguments:
+- `image_base64`: Base64-encoded PNG image data
+- `provider` (optional): Provider name; uses default if not specified
+
+### find_region
+
+Find bounding box coordinates of a described element in an image.
+
+Arguments:
+- `image_base64`: Base64-encoded PNG image data
+- `description`: Description of the element to find
+- `provider` (optional): Provider name; uses default if not specified
+
+## Vision Providers
+
+Configure AI vision providers in your config file to enable image analysis:
+
+```json
+{
+  "vision": {
+    "providers": [
+      {
+        "name": "ollama",
+        "type": "openai-compatible",
+        "base_url": "http://localhost:11434/v1",
+        "model": "llava:7b",
+        "timeout": 30
+      },
+      {
+        "name": "openai",
+        "type": "openai-compatible",
+        "model": "gpt-4o",
+        "api_key": "sk-...",
+        "timeout": 20
+      },
+      {
+        "name": "claude",
+        "type": "anthropic",
+        "model": "claude-sonnet-4-20250514",
+        "api_key": "sk-ant-...",
+        "timeout": 20
+      },
+      {
+        "name": "huggingface",
+        "type": "huggingface",
+        "model": "org/vision-model",
+        "api_key": "hf_...",
+        "timeout": 30
+      }
+    ]
+  }
+}
+```
+
+Provider types:
+- `openai-compatible`: Works with OpenAI, Ollama, Mistral, Groq, and any OpenAI-compatible API
+- `anthropic`: Anthropic Claude API
+- `huggingface`: HuggingFace Inference API
+
+The first provider in the list is used by default. Specify `provider` in tool calls to use a different one. Timeout is in seconds (default: 20).
 
 ## Requirements
 
