@@ -9,6 +9,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/config"
+	"github.com/emmanuel-deloget/screenshooter-mcp/internal/logging"
 )
 
 // openAICompatibleProvider implements Provider for OpenAI-compatible APIs.
@@ -55,6 +56,7 @@ func (p *openAICompatibleProvider) Analyze(ctx context.Context, image []byte, pr
 	defer cancel()
 
 	base64Image := base64.StdEncoding.EncodeToString(image)
+	logging.Debug().Str("provider", p.name).Str("model", p.model).Str("base_url", cfg.BaseURL).Int("timeout", p.timeout).Msg("Sending request to OpenAI-compatible API")
 
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model: p.model,
@@ -78,12 +80,15 @@ func (p *openAICompatibleProvider) Analyze(ctx context.Context, image []byte, pr
 		},
 	})
 	if err != nil {
+		logging.Error().Str("provider", p.name).Str("model", p.model).Err(err).Msg("OpenAI-compatible API request failed")
 		return "", fmt.Errorf("chat completion failed: %w", err)
 	}
 
 	if len(resp.Choices) == 0 {
+		logging.Warn().Str("provider", p.name).Str("model", p.model).Msg("No choices in response")
 		return "", fmt.Errorf("no response from provider %s", p.name)
 	}
 
+	logging.Debug().Str("provider", p.name).Str("model", p.model).Int("response_tokens", resp.Usage.CompletionTokens).Msg("OpenAI-compatible API response received")
 	return resp.Choices[0].Message.Content, nil
 }

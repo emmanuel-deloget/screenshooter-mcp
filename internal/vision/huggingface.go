@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/config"
+	"github.com/emmanuel-deloget/screenshooter-mcp/internal/logging"
 )
 
 // huggingFaceProvider implements Provider for HuggingFace Inference API.
@@ -61,6 +62,8 @@ func (p *huggingFaceProvider) Analyze(ctx context.Context, image []byte, prompt 
 		url = fmt.Sprintf("https://api-inference.huggingface.co/models/%s", p.model)
 	}
 
+	logging.Debug().Str("provider", p.name).Str("model", p.model).Str("url", url).Int("timeout", p.timeout).Msg("Sending request to HuggingFace API")
+
 	body := map[string]interface{}{
 		"inputs": map[string]interface{}{
 			"image": "data:image/png;base64," + base64Image,
@@ -82,6 +85,7 @@ func (p *huggingFaceProvider) Analyze(ctx context.Context, image []byte, prompt 
 	client := &http.Client{Timeout: time.Duration(p.timeout) * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		logging.Error().Str("provider", p.name).Str("model", p.model).Err(err).Msg("HuggingFace API request failed")
 		return "", fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
@@ -92,9 +96,11 @@ func (p *huggingFaceProvider) Analyze(ctx context.Context, image []byte, prompt 
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		logging.Error().Str("provider", p.name).Str("model", p.model).Int("status", resp.StatusCode).Str("response", string(respBody)).Msg("HuggingFace API returned error")
 		return "", fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
+	logging.Debug().Str("provider", p.name).Str("model", p.model).Int("response_size", len(respBody)).Msg("HuggingFace API response received")
 	return parseHuggingFaceResponse(respBody)
 }
 

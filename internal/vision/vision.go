@@ -29,6 +29,7 @@ import (
 	"fmt"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/config"
+	"github.com/emmanuel-deloget/screenshooter-mcp/internal/logging"
 )
 
 // Provider defines the interface for AI vision providers.
@@ -75,16 +76,21 @@ type Manager struct {
 // names are duplicated.
 func NewManager(cfg *config.VisionConfig) (*Manager, error) {
 	if cfg == nil || len(cfg.Providers) == 0 {
+		logging.Debug().Msg("No vision providers configured")
 		return nil, nil
 	}
+
+	logging.Info().Int("count", len(cfg.Providers)).Msg("Initializing vision providers")
 
 	m := &Manager{
 		providerMap: make(map[string]Provider),
 	}
 
 	for _, pc := range cfg.Providers {
+		logging.Debug().Str("provider", pc.Name).Str("type", pc.Type).Str("model", pc.Model).Int("timeout", pc.DefaultTimeout()).Msg("Creating provider")
 		p, err := newProvider(pc)
 		if err != nil {
+			logging.Error().Str("provider", pc.Name).Err(err).Msg("Failed to create provider")
 			return nil, fmt.Errorf("failed to create provider %q: %w", pc.Name, err)
 		}
 
@@ -94,9 +100,11 @@ func NewManager(cfg *config.VisionConfig) (*Manager, error) {
 
 		m.providers = append(m.providers, p)
 		m.providerMap[pc.Name] = p
+		logging.Info().Str("provider", pc.Name).Str("type", pc.Type).Str("model", pc.Model).Msg("Provider initialized")
 	}
 
 	m.defaultProvider = m.providers[0]
+	logging.Info().Str("default", m.defaultProvider.Name()).Msg("Default vision provider set")
 	return m, nil
 }
 
@@ -165,9 +173,19 @@ func (m *Manager) AnalyzeWith(ctx context.Context, name string, image []byte, pr
 
 	p := m.Get(name)
 	if p == nil {
+		logging.Error().Str("provider", name).Msg("Provider not found")
 		return "", fmt.Errorf("provider %q not found", name)
 	}
-	return p.Analyze(ctx, image, prompt)
+
+	logging.Debug().Str("provider", p.Name()).Int("image_size", len(image)).Str("prompt_preview", truncatePrompt(prompt)).Msg("Sending image to provider")
+	result, err := p.Analyze(ctx, image, prompt)
+	if err != nil {
+		logging.Error().Str("provider", p.Name()).Err(err).Msg("Provider analysis failed")
+		return "", err
+	}
+
+	logging.Debug().Str("provider", p.Name()).Int("response_size", len(result)).Msg("Provider analysis complete")
+	return result, nil
 }
 
 // newProvider creates a Provider from configuration.
@@ -185,4 +203,12 @@ func newProvider(cfg config.VisionProviderConfig) (Provider, error) {
 	default:
 		return nil, fmt.Errorf("unknown provider type: %q", cfg.Type)
 	}
+}
+
+// truncatePrompt returns a truncated version of the prompt for logging.
+func truncatePrompt(prompt string) string {
+	if len(prompt) <= 50 {
+		return prompt
+	}
+	return prompt[:47] + "..."
 }

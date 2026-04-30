@@ -10,6 +10,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/option"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/config"
+	"github.com/emmanuel-deloget/screenshooter-mcp/internal/logging"
 )
 
 // anthropicProvider implements Provider for Anthropic's Claude API.
@@ -63,6 +64,7 @@ func (p *anthropicProvider) Analyze(ctx context.Context, image []byte, prompt st
 	defer cancel()
 
 	base64Image := base64.StdEncoding.EncodeToString(image)
+	logging.Debug().Str("provider", p.name).Str("model", p.model).Str("base_url", p.baseURL).Int("timeout", p.timeout).Msg("Sending request to Anthropic API")
 
 	msg, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     p.model,
@@ -88,10 +90,12 @@ func (p *anthropicProvider) Analyze(ctx context.Context, image []byte, prompt st
 		},
 	})
 	if err != nil {
+		logging.Error().Str("provider", p.name).Str("model", p.model).Err(err).Msg("Anthropic API request failed")
 		return "", fmt.Errorf("message completion failed: %w", err)
 	}
 
 	if len(msg.Content) == 0 {
+		logging.Warn().Str("provider", p.name).Str("model", p.model).Msg("No content in response")
 		return "", fmt.Errorf("no response from provider %s", p.name)
 	}
 
@@ -103,8 +107,10 @@ func (p *anthropicProvider) Analyze(ctx context.Context, image []byte, prompt st
 	}
 
 	if result == "" {
+		logging.Warn().Str("provider", p.name).Str("model", p.model).Msg("No text content in response")
 		return "", fmt.Errorf("no text content in response from provider %s", p.name)
 	}
 
+	logging.Debug().Str("provider", p.name).Str("model", p.model).Int("response_size", len(result)).Msg("Anthropic API response received")
 	return result, nil
 }
