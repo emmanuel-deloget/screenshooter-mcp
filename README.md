@@ -261,6 +261,10 @@ Provider types:
 
 The first provider in the list is used by default. Specify `provider` in tool calls to use a different one. Timeout is in seconds (default: 20).
 
+### Model Limitations
+
+In practice, using small vision models through a local setup (such as llama.cpp or Ollama) may not produce reliable results for all types of vision requests. Notably, the `find_region` tool, which requires the model to identify precise bounding box coordinates, is a particularly difficult task for any vision model — including large models accessed through cloud APIs. Small vision models (such as Qwen2-VL, Moondream, or LLaVA variants) are even more likely to fail or return inaccurate coordinates for this type of request. For best results with `find_region`, consider using a larger, more capable model.
+
 ## Requirements
 
 ### X11
