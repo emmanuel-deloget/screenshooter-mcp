@@ -186,7 +186,14 @@ func (t *Tools) ExtractText(ctx context.Context, image []byte, provider string) 
 		return "", fmt.Errorf("no vision providers configured")
 	}
 
-	const extractTextPrompt = "Extract all text from this image. Format the output as markdown, preserving the visual structure: use headings for titles, bold for emphasized text, lists for bullet points, tables for tabular data, and code blocks for code. Maintain the original language."
+	const extractTextPrompt = `Extract all text from this image.
+Format the output as markdown, preserving the visual structure:
+- Use headings for titles and section headers
+- Use bold for emphasized text
+- Use lists for bullet points
+- Use tables for tabular data
+- Use code blocks for code
+Maintain the original language.`
 
 	return t.vision.AnalyzeWith(ctx, provider, image, extractTextPrompt)
 }
@@ -203,7 +210,13 @@ func (t *Tools) FindRegion(ctx context.Context, image []byte, description string
 		return "", fmt.Errorf("no vision providers configured")
 	}
 
-	prompt := fmt.Sprintf("Find the bounding box coordinates of: %s. Return ONLY a JSON object with this exact structure, no other text:\n{\"x\": <number>, \"y\": <number>, \"width\": <number>, \"height\": <number>}\n\nCoordinates are in pixels relative to the top-left corner of the image. Do not include any explanation or markdown formatting.", description)
+	prompt := fmt.Sprintf(`Find the bounding box coordinates of: %s
+
+Return ONLY a JSON object with this exact structure, no other text:
+{"x": <number>, "y": <number>, "width": <number>, "height": <number>}
+
+Coordinates are in pixels relative to the top-left corner of the image.
+Do not include any explanation or markdown formatting.`, description)
 
 	return t.vision.AnalyzeWith(ctx, provider, image, prompt)
 }
