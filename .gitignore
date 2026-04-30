@@ -15,6 +15,7 @@ screenshooter-mcp-server.exe
 /AppDir
 /appimage-builder-cache
 *.AppImage
+/config.json
 
 # Test binary, built with `go test -c`
 *.test

@@ -15,17 +15,36 @@
 //
 // Configuration Structure:
 //
-//	A Config struct contains three fields:
+//	A Config struct contains configuration fields:
 //	  - LogLevel: Controls logging verbosity (debug, info, warn, error)
 //	  - Color: Controls colored output (always, never, auto)
 //	  - Listen: TCP address for HTTP mode (empty = stdio mode)
+//	  - Vision: Vision provider configuration for AI image analysis
 //
 // Example config.json:
 //
 //	{
 //	  "log_level": "info",
 //	  "color": "auto",
-//	  "listen": "127.0.0.1:11777"
+//	  "listen": "127.0.0.1:11777",
+//	  "vision": {
+//	    "providers": [
+//	      {
+//	        "name": "ollama",
+//	        "type": "openai-compatible",
+//	        "base_url": "http://localhost:11434/v1",
+//	        "model": "llava:7b",
+//	        "timeout": 30
+//	      },
+//	      {
+//	        "name": "openai",
+//	        "type": "openai-compatible",
+//	        "model": "gpt-4o",
+//	        "api_key": "sk-...",
+//	        "timeout": 20
+//	      }
+//	    ]
+//	  }
 //	}
 //
 // The Save method writes configuration to a JSON file, creating directories
@@ -63,6 +82,62 @@ type Config struct {
 	// If empty, the server runs in stdio mode.
 	// Example: "127.0.0.1:11777"
 	Listen string `json:"listen"`
+
+	// Vision contains configuration for AI vision providers.
+	// If empty or nil, vision tools are not available.
+	Vision *VisionConfig `json:"vision,omitempty"`
+}
+
+// VisionConfig holds the configuration for AI vision providers.
+//
+// VisionConfig contains a list of providers that can analyze images.
+// The first provider in the list is used as the default when no
+// specific provider is requested.
+type VisionConfig struct {
+	// Providers is the list of configured vision providers.
+	// The first provider is the default.
+	Providers []VisionProviderConfig `json:"providers"`
+}
+
+// VisionProviderConfig configures a single vision provider.
+//
+// Each provider has a unique name, a type that determines the API
+// protocol, and connection details. The timeout field controls
+// how long to wait for a response before failing.
+type VisionProviderConfig struct {
+	// Name is the unique identifier for this provider.
+	// Used to select a specific provider in tool calls.
+	Name string `json:"name"`
+
+	// Type specifies the API protocol to use.
+	// Valid values: "openai-compatible", "anthropic", "huggingface"
+	Type string `json:"type"`
+
+	// BaseURL is the API endpoint URL.
+	// For openai-compatible providers, this overrides the default URL.
+	// For HuggingFace, this is the Inference API URL.
+	// Optional for OpenAI and Anthropic (uses their default URLs).
+	BaseURL string `json:"base_url,omitempty"`
+
+	// Model specifies which model to use for analysis.
+	// Examples: "gpt-4o", "llava:7b", "claude-sonnet-4-20250514"
+	Model string `json:"model"`
+
+	// APIKey is the authentication key for the provider.
+	// Optional for local providers like Ollama.
+	APIKey string `json:"api_key,omitempty"`
+
+	// Timeout is the maximum time in seconds to wait for a response.
+	// Default: 20 seconds if not specified.
+	Timeout int `json:"timeout,omitempty"`
+}
+
+// DefaultTimeout returns the configured timeout or the default of 20 seconds.
+func (p *VisionProviderConfig) DefaultTimeout() int {
+	if p.Timeout <= 0 {
+		return 20
+	}
+	return p.Timeout
 }
 
 // DefaultConfig returns a new Config with default values.
