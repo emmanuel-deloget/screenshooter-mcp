@@ -25,6 +25,7 @@ import (
 	"image/png"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/capture"
+	"github.com/emmanuel-deloget/screenshooter-mcp/internal/vision"
 )
 
 // Tools provides MCP tool implementations for screen capture.
@@ -39,6 +40,7 @@ import (
 // operations may be serialized depending on the backend.
 type Tools struct {
 	capture capture.ScreenCapture
+	vision  *vision.Manager
 }
 
 // NewTools creates a new Tools instance with the given capture implementation.
@@ -58,6 +60,14 @@ func NewTools(c capture.ScreenCapture) *Tools {
 	return &Tools{
 		capture: c,
 	}
+}
+
+// SetVisionManager sets the vision provider manager for image analysis tools.
+//
+// If mgr is nil, vision tools will return an error indicating that no
+// providers are configured.
+func (t *Tools) SetVisionManager(mgr *vision.Manager) {
+	t.vision = mgr
 }
 
 // ListMonitors returns a list of all available monitors.
@@ -116,7 +126,7 @@ func (t *Tools) CaptureScreen(ctx context.Context, monitor string) ([]byte, erro
 func (t *Tools) CaptureWindow(ctx context.Context, title string) ([]byte, error) {
 	img, err := t.capture.CaptureWindow(title)
 	if err != nil {
-		return nil, fmt.Errorf("capture window failed: %w", err)
+		return nil, fmt.Errorf("capture windows failed: %w", err)
 	}
 	return encodeImage(img)
 }
@@ -137,6 +147,65 @@ func (t *Tools) CaptureRegion(ctx context.Context, x, y, w, h int) ([]byte, erro
 		return nil, fmt.Errorf("capture region failed: %w", err)
 	}
 	return encodeImage(img)
+}
+
+// ListVisionProviders returns metadata for all configured vision providers.
+//
+// Returns a list of provider names, models, and which one is the default.
+// Returns an error if no vision providers are configured.
+func (t *Tools) ListVisionProviders(ctx context.Context) ([]vision.ProviderInfo, error) {
+	if t.vision == nil {
+		return nil, fmt.Errorf("no vision providers configured")
+	}
+	return t.vision.Providers(), nil
+}
+
+// AnalyzeImage sends an image to a vision provider for analysis.
+//
+// The image argument should be PNG-encoded bytes. The prompt argument
+// specifies what analysis to perform. If provider is empty, the default
+// provider is used.
+//
+// Returns the text response from the AI model.
+func (t *Tools) AnalyzeImage(ctx context.Context, image []byte, prompt string, provider string) (string, error) {
+	if t.vision == nil {
+		return "", fmt.Errorf("no vision providers configured")
+	}
+	return t.vision.AnalyzeWith(ctx, provider, image, prompt)
+}
+
+// ExtractText performs OCR on an image and returns structured markdown text.
+//
+// The image argument should be PNG-encoded bytes. If provider is empty,
+// the default provider is used.
+//
+// The prompt instructs the model to extract text and format it as markdown
+// preserving structure (headings, bold, lists, tables, code blocks).
+func (t *Tools) ExtractText(ctx context.Context, image []byte, provider string) (string, error) {
+	if t.vision == nil {
+		return "", fmt.Errorf("no vision providers configured")
+	}
+
+	const extractTextPrompt = "Extract all text from this image. Format the output as markdown, preserving the visual structure: use headings for titles, bold for emphasized text, lists for bullet points, tables for tabular data, and code blocks for code. Maintain the original language."
+
+	return t.vision.AnalyzeWith(ctx, provider, image, extractTextPrompt)
+}
+
+// FindRegion finds the bounding box coordinates of a described element in an image.
+//
+// The image argument should be PNG-encoded bytes. The description argument
+// specifies what element to find (e.g., "the search button", "the logo").
+// If provider is empty, the default provider is used.
+//
+// Returns the coordinates as x, y, width, height in pixels.
+func (t *Tools) FindRegion(ctx context.Context, image []byte, description string, provider string) (string, error) {
+	if t.vision == nil {
+		return "", fmt.Errorf("no vision providers configured")
+	}
+
+	prompt := fmt.Sprintf("Find the bounding box coordinates of: %s. Return the coordinates as x, y, width, height in pixels relative to the top-left corner of the image.", description)
+
+	return t.vision.AnalyzeWith(ctx, provider, image, prompt)
 }
 
 // encodeImage converts an image.Image to PNG-encoded bytes.
