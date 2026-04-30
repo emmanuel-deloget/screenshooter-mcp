@@ -52,6 +52,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -63,6 +64,7 @@ import (
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/config"
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/logging"
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/tools"
+	"github.com/emmanuel-deloget/screenshooter-mcp/internal/vision"
 	"github.com/jessevdk/go-flags"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -191,7 +193,7 @@ func run(opts *Options, cfg *config.Config) error {
 	if listen != "" && listen != "stdio" {
 		logging.Warn().Str("listen", listen).Msg("Listen mode: requires external MCP<->HTTP bridge")
 		opts.Listen = listen
-		return runHttpBridge(opts)
+		return runHttpBridge(opts, cfg)
 	}
 
 	logging.Info().Msg("Starting screenshooter-mcp server")
@@ -225,6 +227,16 @@ func run(opts *Options, cfg *config.Config) error {
 	}
 
 	serverTools := tools.NewTools(capt)
+
+	visionMgr, err := vision.NewManager(cfg.Vision)
+	if err != nil {
+		logging.Warn().Err(err).Msg("Failed to initialize vision providers")
+	} else if visionMgr != nil {
+		serverTools.SetVisionManager(visionMgr)
+		logging.Info().Int("count", len(cfg.Vision.Providers)).Msg("Vision providers initialized")
+	} else {
+		logging.Info().Msg("No vision providers configured")
+	}
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "screenshooter-mcp",
@@ -262,7 +274,7 @@ func run(opts *Options, cfg *config.Config) error {
 //   - The desktop environment cannot be detected
 //   - The capture backend cannot be created
 //   - The HTTP server fails to start or listen
-func runHttpBridge(opts *Options) error {
+func runHttpBridge(opts *Options, cfg *config.Config) error {
 	logging.Info().Str("listen", opts.Listen).Msg("Starting HTTP server")
 
 	detector := capture.NewEnvironmentDetector()
@@ -297,6 +309,14 @@ func runHttpBridge(opts *Options) error {
 	}, nil)
 
 	serverTools := tools.NewTools(capt)
+
+	visionMgr, err := vision.NewManager(cfg.Vision)
+	if err != nil {
+		logging.Warn().Err(err).Msg("Failed to initialize vision providers")
+	} else if visionMgr != nil {
+		serverTools.SetVisionManager(visionMgr)
+	}
+
 	registerTools(server, serverTools)
 
 	handler := mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {
@@ -361,6 +381,26 @@ type captureRegionInput struct {
 	Y      int `json:"y" jsonschema:"Y coordinate of the top-left corner"`
 	Width  int `json:"width" jsonschema:"width of the region"`
 	Height int `json:"height" jsonschema:"height of the region"`
+}
+
+// analyzeImageInput defines the input parameters for the analyze_image MCP tool.
+type analyzeImageInput struct {
+	ImageBase64 string `json:"image_base64" jsonschema:"base64-encoded PNG image data"`
+	Prompt      string `json:"prompt" jsonschema:"text prompt describing what analysis to perform"`
+	Provider    string `json:"provider,omitempty" jsonschema:"optional provider name; uses default if not specified"`
+}
+
+// extractTextInput defines the input parameters for the extract_text MCP tool.
+type extractTextInput struct {
+	ImageBase64 string `json:"image_base64" jsonschema:"base64-encoded PNG image data"`
+	Provider    string `json:"provider,omitempty" jsonschema:"optional provider name; uses default if not specified"`
+}
+
+// findRegionInput defines the input parameters for the find_region MCP tool.
+type findRegionInput struct {
+	ImageBase64 string `json:"image_base64" jsonschema:"base64-encoded PNG image data"`
+	Description string `json:"description" jsonschema:"description of the element to find"`
+	Provider    string `json:"provider,omitempty" jsonschema:"optional provider name; uses default if not specified"`
 }
 
 // registerTools registers all MCP tools with the server.
@@ -532,6 +572,141 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 		}, nil, nil
 	})
 	toolNames = append(toolNames, "capture_region")
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "list_vision_providers",
+		Description: "List all configured AI vision providers",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, _ *listMonitorsInput) (*mcp.CallToolResult, any, error) {
+		logging.Debug().Str("tool", "list_vision_providers").Msg("Tool called")
+		providers, err := t.ListVisionProviders(ctx)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to list vision providers: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		jsonData, err := json.Marshal(providers)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to marshal providers: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: string(jsonData)},
+			},
+		}, nil, nil
+	})
+	toolNames = append(toolNames, "list_vision_providers")
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "analyze_image",
+		Description: "Analyze an image using AI vision providers",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args *analyzeImageInput) (*mcp.CallToolResult, any, error) {
+		logging.Debug().Str("tool", "analyze_image").Str("provider", args.Provider).Msg("Tool called")
+		imageData, err := base64.StdEncoding.DecodeString(args.ImageBase64)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to decode image: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		result, err := t.AnalyzeImage(ctx, imageData, args.Prompt, args.Provider)
+		if err != nil {
+			logging.Error().Err(err).Str("tool", "analyze_image").Msg("Tool failed")
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to analyze image: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: result},
+			},
+		}, nil, nil
+	})
+	toolNames = append(toolNames, "analyze_image")
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "extract_text",
+		Description: "Extract text from an image as formatted markdown",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args *extractTextInput) (*mcp.CallToolResult, any, error) {
+		logging.Debug().Str("tool", "extract_text").Str("provider", args.Provider).Msg("Tool called")
+		imageData, err := base64.StdEncoding.DecodeString(args.ImageBase64)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to decode image: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		result, err := t.ExtractText(ctx, imageData, args.Provider)
+		if err != nil {
+			logging.Error().Err(err).Str("tool", "extract_text").Msg("Tool failed")
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to extract text: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: result},
+			},
+		}, nil, nil
+	})
+	toolNames = append(toolNames, "extract_text")
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "find_region",
+		Description: "Find bounding box coordinates of a described element in an image",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args *findRegionInput) (*mcp.CallToolResult, any, error) {
+		logging.Debug().Str("tool", "find_region").Str("provider", args.Provider).Msg("Tool called")
+		imageData, err := base64.StdEncoding.DecodeString(args.ImageBase64)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to decode image: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		result, err := t.FindRegion(ctx, imageData, args.Description, args.Provider)
+		if err != nil {
+			logging.Error().Err(err).Str("tool", "find_region").Msg("Tool failed")
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to find region: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: result},
+			},
+		}, nil, nil
+	})
+	toolNames = append(toolNames, "find_region")
 
 	logging.Info().Strs("tools", toolNames).Msg("Tools registered")
 }
