@@ -206,22 +206,22 @@ See `tests/integration/README.md` for requirements and supported configurations.
 
 | Distribution / Version | Desktop / Mode | Status | Notes |
 |------------------------|----------------|--------|-------|
-| Debian 12 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
-| Debian 12 | GNOME / X11 | PASS |  |
-| Debian 12 | KDE / Wayland | PASS | |
-| Debian 12 | KDE / X11 | PASS |  |
-| Debian 13 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
-| Debian 13 | GNOME / X11 | PASS |  |
-| Debian 13 | KDE / Wayland | PASS | |
-| Debian 13 | KDE / X11 | PASS |  |
-| Fedora 43 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
-| Fedora 43 | KDE / Wayland | PASS | |
-| Ubuntu 24.04 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
-| Ubuntu 24.04 | GNOME / X11 | PASS |  |
-| Ubuntu 24.04 | KDE / Wayland | FAIL | `list_windows` times out — KWin 5 (Plasma 5) uses `clientList()` API, upstream `perfuncted` library only supports KWin 6 `windowList()` |
-| Ubuntu 24.04 | KDE / X11 | PASS |  |
-| Ubuntu 25.10 | GNOME / Wayland | PASS | Uses `screenshooter-mcp@deloget.com` GNOME extension |
-| Ubuntu 25.10 | KDE / Wayland | PASS | KWin 6 (Plasma 6) — `windowList()` API supported |
+| Debian 12 | GNOME / Wayland | ✅  | ⚠️ Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Debian 12 | GNOME / X11 | ✅  |  |
+| Debian 12 | KDE / Wayland | ✅  | |
+| Debian 12 | KDE / X11 | ✅  |  |
+| Debian 13 | GNOME / Wayland | ✅  | ⚠️ Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Debian 13 | GNOME / X11 | ✅  |  |
+| Debian 13 | KDE / Wayland | ✅  | |
+| Debian 13 | KDE / X11 | ✅  |  |
+| Fedora 43 | GNOME / Wayland | ✅  | ⚠️ Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Fedora 43 | KDE / Wayland | ✅  | |
+| Ubuntu 24.04 | GNOME / Wayland | ✅  | ⚠️ Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Ubuntu 24.04 | GNOME / X11 | ✅  |  |
+| Ubuntu 24.04 | KDE / Wayland | ❌ | `list_windows` times out — KWin 5 (Plasma 5) uses `clientList()` API, upstream `perfuncted` library only supports KWin 6 `windowList()` |
+| Ubuntu 24.04 | KDE / X11 | ✅  |  |
+| Ubuntu 25.10 | GNOME / Wayland | ✅  | ⚠️ Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Ubuntu 25.10 | KDE / Wayland | ✅  |  |
 
 ## License
 
