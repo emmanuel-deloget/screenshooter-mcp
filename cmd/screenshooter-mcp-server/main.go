@@ -409,6 +409,106 @@ type findRegionInput struct {
 	Provider    string `json:"provider,omitempty" jsonschema:"optional provider name; uses default if not specified"`
 }
 
+// RegionResult represents the bounding box coordinates returned by find_region.
+type RegionResult struct {
+	X      int `json:"x"`
+	Y      int `json:"y"`
+	Width  int `json:"width"`
+	Height int `json:"height"`
+}
+
+// parseRegionResponse extracts the region coordinates from the AI model response.
+// It attempts to parse the response as JSON {x, y, width, height}.
+func parseRegionResponse(response string) RegionResult {
+	var region RegionResult
+	if err := json.Unmarshal([]byte(response), &region); err == nil {
+		return region
+	}
+
+	// Try to extract JSON from markdown code blocks
+	if start := findJSONBlock(response); start >= 0 {
+		end := findJSONEnd(response, start)
+		if end > start {
+			if err := json.Unmarshal([]byte(response[start:end]), &region); err == nil {
+				return region
+			}
+		}
+	}
+
+	// Fallback: try to find numbers in the response
+	region = parseRegionNumbers(response)
+	return region
+}
+
+// findJSONBlock finds the start of a JSON block in markdown.
+func findJSONBlock(s string) int {
+	markers := []string{"```json\n", "```\n", "{"}
+	for _, m := range markers {
+		if idx := index(s, m); idx >= 0 {
+			if m == "{" {
+				return idx
+			}
+			return idx + len(m)
+		}
+	}
+	return -1
+}
+
+// findJSONEnd finds the matching closing brace for a JSON object.
+func findJSONEnd(s string, start int) int {
+	depth := 0
+	for i := start; i < len(s); i++ {
+		switch s[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return i + 1
+			}
+		}
+	}
+	return -1
+}
+
+// index is a simple strings.Index replacement.
+func index(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
+}
+
+// parseRegionNumbers extracts numbers from text as a last resort fallback.
+func parseRegionNumbers(s string) RegionResult {
+	var nums []int
+	var current int
+	inNum := false
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			current = current*10 + int(c-'0')
+			inNum = true
+		} else if inNum {
+			nums = append(nums, current)
+			current = 0
+			inNum = false
+			if len(nums) == 4 {
+				break
+			}
+		}
+	}
+	if inNum && len(nums) < 4 {
+		nums = append(nums, current)
+	}
+
+	if len(nums) >= 4 {
+		return RegionResult{X: nums[0], Y: nums[1], Width: nums[2], Height: nums[3]}
+	}
+	return RegionResult{}
+}
+
 // registerTools registers all MCP tools with the server.
 //
 // This function creates and registers MCP tools with the MCP server:
@@ -710,9 +810,20 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 			}, nil, nil
 		}
 
+		region := parseRegionResponse(result)
+		jsonData, err := json.Marshal(region)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to parse region result: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: result},
+				&mcp.TextContent{Text: string(jsonData)},
 			},
 		}, nil, nil
 	})

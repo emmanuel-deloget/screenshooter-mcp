@@ -203,7 +203,7 @@ func (t *Tools) FindRegion(ctx context.Context, image []byte, description string
 		return "", fmt.Errorf("no vision providers configured")
 	}
 
-	prompt := fmt.Sprintf("Find the bounding box coordinates of: %s. Return the coordinates as x, y, width, height in pixels relative to the top-left corner of the image.", description)
+	prompt := fmt.Sprintf("Find the bounding box coordinates of: %s. Return ONLY a JSON object with this exact structure, no other text:\n{\"x\": <number>, \"y\": <number>, \"width\": <number>, \"height\": <number>}\n\nCoordinates are in pixels relative to the top-left corner of the image. Do not include any explanation or markdown formatting.", description)
 
 	return t.vision.AnalyzeWith(ctx, provider, image, prompt)
 }
