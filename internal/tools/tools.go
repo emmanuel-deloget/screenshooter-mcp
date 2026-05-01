@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"time"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/capture"
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/vision"
@@ -219,6 +220,26 @@ Coordinates are in pixels relative to the top-left corner of the image.
 Do not include any explanation or markdown formatting.`, description)
 
 	return t.vision.AnalyzeWith(ctx, provider, image, prompt)
+}
+
+// CompareImages sends two images to a vision provider for comparison.
+//
+// Both image arguments should be PNG-encoded bytes. The prompt argument
+// specifies what comparison to perform. If provider is empty, the default
+// provider is used. If timeout is non-zero, it overrides the provider's
+// configured timeout for this call (in seconds).
+//
+// Returns the text response from the AI model describing the comparison.
+func (t *Tools) CompareImages(ctx context.Context, image1 []byte, image2 []byte, prompt string, provider string, timeout int) (string, error) {
+	if t.vision == nil {
+		return "", fmt.Errorf("no vision providers configured")
+	}
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+		defer cancel()
+	}
+	return t.vision.CompareImages(ctx, provider, image1, image2, prompt)
 }
 
 // encodeImage converts an image.Image to PNG-encoded bytes.

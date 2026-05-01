@@ -45,6 +45,18 @@ type Provider interface {
 	Analyze(ctx context.Context, image []byte, prompt string) (string, error)
 }
 
+// ImageComparer extends Provider with the ability to compare two images.
+//
+// Not all providers support multi-image input. Providers that implement
+// this interface can compare two images side by side.
+type ImageComparer interface {
+	Provider
+
+	// CompareImages sends two images and a prompt to the AI model and
+	// returns a text response describing the comparison.
+	CompareImages(ctx context.Context, image1 []byte, image2 []byte, prompt string) (string, error)
+}
+
 // ProviderInfo contains metadata about a configured provider.
 type ProviderInfo struct {
 	// Name is the unique identifier for this provider.
@@ -185,6 +197,38 @@ func (m *Manager) AnalyzeWith(ctx context.Context, name string, image []byte, pr
 	}
 
 	logging.Debug().Str("provider", p.Name()).Int("response_size", len(result)).Msg("Provider analysis complete")
+	return result, nil
+}
+
+// CompareImages uses a specific provider to compare two images.
+//
+// If name is empty, uses the default provider.
+// Returns an error if the provider does not support image comparison
+// or if the provider is not found.
+func (m *Manager) CompareImages(ctx context.Context, name string, image1 []byte, image2 []byte, prompt string) (string, error) {
+	if m == nil {
+		return "", fmt.Errorf("no vision providers configured")
+	}
+
+	p := m.Get(name)
+	if p == nil {
+		logging.Error().Str("provider", name).Msg("Provider not found")
+		return "", fmt.Errorf("provider %q not found", name)
+	}
+
+	cp, ok := p.(ImageComparer)
+	if !ok {
+		return "", fmt.Errorf("provider %q does not support image comparison", p.Name())
+	}
+
+	logging.Debug().Str("provider", p.Name()).Int("image1_size", len(image1)).Int("image2_size", len(image2)).Str("prompt_preview", truncatePrompt(prompt)).Msg("Sending images to provider for comparison")
+	result, err := cp.CompareImages(ctx, image1, image2, prompt)
+	if err != nil {
+		logging.Error().Str("provider", p.Name()).Err(err).Msg("Provider image comparison failed")
+		return "", err
+	}
+
+	logging.Debug().Str("provider", p.Name()).Int("response_size", len(result)).Msg("Provider image comparison complete")
 	return result, nil
 }
 
