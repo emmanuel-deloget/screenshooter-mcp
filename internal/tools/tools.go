@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"image"
 	"image/png"
-	"os"
 	"time"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/capture"
@@ -174,10 +173,6 @@ func (t *Tools) ListVisionProviders(ctx context.Context) ([]vision.ProviderInfo,
 // path (/usr/share/screenshooter-mcp/skills/SKILL.md). If that file is
 // not found, it falls back to the embedded version compiled into the binary.
 func (t *Tools) GetSkillInfo() string {
-	data, err := os.ReadFile("/usr/share/screenshooter-mcp/skills/SKILL.md")
-	if err == nil {
-		return string(data)
-	}
 	return embeddedSkill
 }
 
