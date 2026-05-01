@@ -204,7 +204,8 @@ Arguments:
 - `image_base64`: Base64-encoded PNG image data
 - `prompt`: Text prompt describing what analysis to perform
 - `provider` (optional): Provider name; uses default if not specified
-
+- `timeout` (optional): Timeout in seconds; 0 uses provider default
+ 
 ### extract_text
 
 Extract text from an image as formatted markdown (OCR).
@@ -212,6 +213,7 @@ Extract text from an image as formatted markdown (OCR).
 Arguments:
 - `image_base64`: Base64-encoded PNG image data
 - `provider` (optional): Provider name; uses default if not specified
+- `timeout` (optional): Timeout in seconds; 0 uses provider default
 
 ### find_region
 
