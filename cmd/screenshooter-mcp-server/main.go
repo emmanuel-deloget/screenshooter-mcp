@@ -412,6 +412,15 @@ type findRegionInput struct {
 	Timeout     int    `json:"timeout,omitempty" jsonschema:"optional timeout in seconds; 0 uses provider default"`
 }
 
+// compareImagesInput defines the input parameters for the compare_images MCP tool.
+type compareImagesInput struct {
+	ImageBase64  string `json:"image_base64" jsonschema:"base64-encoded PNG image data (first image)"`
+	Image2Base64 string `json:"image2_base64" jsonschema:"base64-encoded PNG image data (second image)"`
+	Prompt       string `json:"prompt,omitempty" jsonschema:"optional comparison prompt; uses default if not specified"`
+	Provider     string `json:"provider,omitempty" jsonschema:"optional provider name; uses default if not specified"`
+	Timeout      int    `json:"timeout,omitempty" jsonschema:"optional timeout in seconds; 0 uses provider default"`
+}
+
 // RegionResult represents the bounding box coordinates returned by find_region.
 type RegionResult struct {
 	X      int `json:"x"`
@@ -831,6 +840,54 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 		}, nil, nil
 	})
 	toolNames = append(toolNames, "find_region")
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "compare_images",
+		Description: "Compare two images and describe the differences",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, args *compareImagesInput) (*mcp.CallToolResult, any, error) {
+		logging.Debug().Str("tool", "compare_images").Str("provider", args.Provider).Msg("Tool called")
+		image1Data, err := base64.StdEncoding.DecodeString(args.ImageBase64)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to decode first image: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+		image2Data, err := base64.StdEncoding.DecodeString(args.Image2Base64)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to decode second image: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		prompt := args.Prompt
+		if prompt == "" {
+			prompt = "Describe the differences between these two images. Be specific about what changed."
+		}
+
+		result, err := t.CompareImages(ctx, image1Data, image2Data, prompt, args.Provider, args.Timeout)
+		if err != nil {
+			logging.Error().Err(err).Str("tool", "compare_images").Msg("Tool failed")
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Failed to compare images: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: result},
+			},
+		}, nil, nil
+	})
+	toolNames = append(toolNames, "compare_images")
 
 	logging.Info().Strs("tools", toolNames).Msg("Tools registered")
 }
