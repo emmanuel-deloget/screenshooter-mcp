@@ -174,14 +174,18 @@ func (c *X11Capture) ListWindows() ([]capture.Window, error) {
 	windows := make([]capture.Window, 0, len(windowList))
 	for _, w := range windowList {
 		windows = append(windows, capture.Window{
-			ID:     capture.WindowID(w.ID),
-			Name:   w.Title,
-			X:      w.X,
-			Y:      w.Y,
-			Width:  w.W,
-			Height: w.H,
+			ID:         capture.WindowID(w.ID),
+			Name:       w.Title,
+			X:          w.X,
+			Y:          w.Y,
+			Width:      w.W,
+			Height:     w.H,
+			Active:     w.Active,
+			Minimized:  w.Minimized,
+			Maximized:  w.Maximized,
+			Fullscreen: w.Fullscreen,
 		})
-		logging.Debug().Uint64("id", w.ID).Str("title", w.Title).Int("x", w.X).Int("y", w.Y).Int("width", w.W).Int("height", w.H).Msg("Found window")
+		logging.Debug().Uint64("id", w.ID).Str("title", w.Title).Int("x", w.X).Int("y", w.Y).Int("width", w.W).Int("height", w.H).Bool("active", w.Active).Msg("Found window")
 	}
 
 	return windows, nil
