@@ -426,7 +426,7 @@ type compareImagesInput struct {
 
 // executePipelineInput defines the input parameters for the execute_capture_pipeline MCP tool.
 type executePipelineInput struct {
-	Pipeline []tools.PipelineStep `json:"pipeline" jsonschema:"ordered list of pipeline steps to execute"`
+	Pipeline any `json:"pipeline" jsonschema:"ordered list of pipeline steps to execute"`
 }
 
 // RegionResult represents the bounding box coordinates returned by find_region.
@@ -904,9 +904,19 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 		Name:        "execute_capture_pipeline",
 		Description: "Execute a pipeline of capture and vision operations. Each step's output is pushed onto a stack for use by subsequent steps. Returns the final result.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, args *executePipelineInput) (*mcp.CallToolResult, any, error) {
-		logging.Debug().Int("steps", len(args.Pipeline)).Str("tool", "execute_capture_pipeline").Msg("Tool called")
+		steps, err := DeserializeSlice[tools.PipelineStep](args.Pipeline)
+		if err != nil {
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid pipeline argument: %v", err)},
+				},
+				IsError: true,
+			}, nil, nil
+		}
 
-		imgBase64, text, err := tools.ExecutePipeline(ctx, args.Pipeline, t)
+		logging.Debug().Int("steps", len(steps)).Str("tool", "execute_capture_pipeline").Msg("Tool called")
+
+		imgBase64, text, err := tools.ExecutePipeline(ctx, steps, t)
 		if err != nil {
 			logging.Error().Err(err).Str("tool", "execute_capture_pipeline").Msg("Tool failed")
 			return &mcp.CallToolResult{
