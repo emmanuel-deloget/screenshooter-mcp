@@ -7,6 +7,8 @@
 //   - CaptureScreen: Capture all or specific monitors
 //   - CaptureWindow: Capture a specific window by title
 //   - CaptureRegion: Capture an arbitrary screen region
+//   - CompareImages: Compare two images and describe differences
+//   - ExecutePipeline: Chain multiple capture and vision operations
 //
 // The tools accept context.Context for cancellation support, though currently
 // the underlying capture operations do not support context cancellation.
