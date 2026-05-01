@@ -28,6 +28,10 @@ MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 
 - **execute_capture_pipeline** - Chain multiple capture and vision operations in a single call
 
+### Agent Tools
+
+- **get_skill_info_for_agent** - Return agent skill documentation with tool descriptions and workflow examples
+
 ## Installation
 
 ### From Packages
@@ -250,6 +254,11 @@ Example:
   ]
 }
 ```
+
+### get_skill_info_for_agent
+
+Return the agent skill documentation. This tool provides a comprehensive guide
+to all available tools, workflow examples, and pipeline usage patterns.
 
 ## Vision Providers
 
