@@ -39,6 +39,7 @@
 //   - find_region: Finds bounding box coordinates of a described element
 //   - compare_images: Compares two images and describes the differences
 //   - execute_capture_pipeline: Chains multiple capture and vision operations
+//   - get_skill_info_for_agent: Returns agent skill documentation
 //
 // Usage:
 //
@@ -542,6 +543,7 @@ func parseRegionNumbers(s string) RegionResult {
 //  9. find_region - Finds bounding box coordinates of a described element
 //  10. compare_images - Compares two images and describes differences
 //  11. execute_capture_pipeline - Chains multiple capture and vision operations
+//  12. get_skill_info_for_agent - Returns agent skill documentation
 //
 // Each tool is wrapped with error handling that:
 //   - Logs the tool call with parameters for debugging
@@ -937,6 +939,22 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 		}, nil, nil
 	})
 	toolNames = append(toolNames, "execute_capture_pipeline")
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "get_skill_info_for_agent",
+		Description: "Return the agent skill documentation for using this MCP server. Provides tool descriptions, workflow examples, and pipeline usage guidance.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, _ *listMonitorsInput) (*mcp.CallToolResult, any, error) {
+		logging.Debug().Str("tool", "get_skill_info_for_agent").Msg("Tool called")
+
+		skill := t.GetSkillInfo()
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: skill},
+			},
+		}, nil, nil
+	})
+	toolNames = append(toolNames, "get_skill_info_for_agent")
 
 	logging.Info().Strs("tools", toolNames).Msg("Tools registered")
 }

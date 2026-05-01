@@ -21,15 +21,20 @@ package tools
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"image"
 	"image/png"
+	"os"
 	"time"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/capture"
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/vision"
 )
+
+//go:embed skills/SKILL.md
+var embeddedSkill string
 
 // Tools provides MCP tool implementations for screen capture.
 //
@@ -161,6 +166,19 @@ func (t *Tools) ListVisionProviders(ctx context.Context) ([]vision.ProviderInfo,
 		return nil, fmt.Errorf("no vision providers configured")
 	}
 	return t.vision.Providers(), nil
+}
+
+// GetSkillInfo returns the agent skill documentation.
+//
+// It first attempts to read the SKILL.md file from the system installation
+// path (/usr/share/screenshooter-mcp/skills/SKILL.md). If that file is
+// not found, it falls back to the embedded version compiled into the binary.
+func (t *Tools) GetSkillInfo() string {
+	data, err := os.ReadFile("/usr/share/screenshooter-mcp/skills/SKILL.md")
+	if err == nil {
+		return string(data)
+	}
+	return embeddedSkill
 }
 
 // AnalyzeImage sends an image to a vision provider for analysis.
