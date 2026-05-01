@@ -394,12 +394,14 @@ type analyzeImageInput struct {
 	ImageBase64 string `json:"image_base64" jsonschema:"base64-encoded PNG image data"`
 	Prompt      string `json:"prompt" jsonschema:"text prompt describing what analysis to perform"`
 	Provider    string `json:"provider,omitempty" jsonschema:"optional provider name; uses default if not specified"`
+	Timeout     int    `json:"timeout,omitempty" jsonschema:"optional timeout in seconds; 0 uses provider default"`
 }
 
 // extractTextInput defines the input parameters for the extract_text MCP tool.
 type extractTextInput struct {
 	ImageBase64 string `json:"image_base64" jsonschema:"base64-encoded PNG image data"`
 	Provider    string `json:"provider,omitempty" jsonschema:"optional provider name; uses default if not specified"`
+	Timeout     int    `json:"timeout,omitempty" jsonschema:"optional timeout in seconds; 0 uses provider default"`
 }
 
 // findRegionInput defines the input parameters for the find_region MCP tool.
@@ -407,6 +409,7 @@ type findRegionInput struct {
 	ImageBase64 string `json:"image_base64" jsonschema:"base64-encoded PNG image data"`
 	Description string `json:"description" jsonschema:"description of the element to find"`
 	Provider    string `json:"provider,omitempty" jsonschema:"optional provider name; uses default if not specified"`
+	Timeout     int    `json:"timeout,omitempty" jsonschema:"optional timeout in seconds; 0 uses provider default"`
 }
 
 // RegionResult represents the bounding box coordinates returned by find_region.
@@ -731,7 +734,7 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 			}, nil, nil
 		}
 
-		result, err := t.AnalyzeImage(ctx, imageData, args.Prompt, args.Provider)
+		result, err := t.AnalyzeImage(ctx, imageData, args.Prompt, args.Provider, args.Timeout)
 		if err != nil {
 			logging.Error().Err(err).Str("tool", "analyze_image").Msg("Tool failed")
 			return &mcp.CallToolResult{
@@ -765,7 +768,7 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 			}, nil, nil
 		}
 
-		result, err := t.ExtractText(ctx, imageData, args.Provider)
+		result, err := t.ExtractText(ctx, imageData, args.Provider, args.Timeout)
 		if err != nil {
 			logging.Error().Err(err).Str("tool", "extract_text").Msg("Tool failed")
 			return &mcp.CallToolResult{
@@ -799,7 +802,7 @@ func registerTools(server *mcp.Server, t *tools.Tools) {
 			}, nil, nil
 		}
 
-		result, err := t.FindRegion(ctx, imageData, args.Description, args.Provider)
+		result, err := t.FindRegion(ctx, imageData, args.Description, args.Provider, args.Timeout)
 		if err != nil {
 			logging.Error().Err(err).Str("tool", "find_region").Msg("Tool failed")
 			return &mcp.CallToolResult{
