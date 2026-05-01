@@ -7,6 +7,8 @@
 //   - CaptureScreen: Capture all or specific monitors
 //   - CaptureWindow: Capture a specific window by title
 //   - CaptureRegion: Capture an arbitrary screen region
+//   - CompareImages: Compare two images and describe differences
+//   - ExecutePipeline: Chain multiple capture and vision operations
 //
 // The tools accept context.Context for cancellation support, though currently
 // the underlying capture operations do not support context cancellation.
@@ -19,6 +21,7 @@ package tools
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -28,6 +31,9 @@ import (
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/capture"
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/vision"
 )
+
+//go:embed skills/SKILL.md
+var embeddedSkill string
 
 // Tools provides MCP tool implementations for screen capture.
 //
@@ -159,6 +165,15 @@ func (t *Tools) ListVisionProviders(ctx context.Context) ([]vision.ProviderInfo,
 		return nil, fmt.Errorf("no vision providers configured")
 	}
 	return t.vision.Providers(), nil
+}
+
+// GetSkillInfo returns the agent skill documentation.
+//
+// It first attempts to read the SKILL.md file from the system installation
+// path (/usr/share/screenshooter-mcp/skills/SKILL.md). If that file is
+// not found, it falls back to the embedded version compiled into the binary.
+func (t *Tools) GetSkillInfo() string {
+	return embeddedSkill
 }
 
 // AnalyzeImage sends an image to a vision provider for analysis.

@@ -50,6 +50,8 @@ jobs:
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/modern
           cp -fpR gnome-extension/screenshooter-mcp@deloget.com_legacy screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/legacy/screenshooter-mcp@deloget.com
           cp -fpR gnome-extension/screenshooter-mcp@deloget.com_modern screenshooter-mcp-${{ matrix.arch }}-server/dot.local/share/gnome-shell/extensions/modern/screenshooter-mcp@deloget.com
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-server/usr/share/screenshooter-mcp/skills
+          cp internal/tools/skills/SKILL.md screenshooter-mcp-${{ matrix.arch }}-server/usr/share/screenshooter-mcp/skills/
           cat > screenshooter-mcp-${{ matrix.arch }}-server/README.txt << 'EOF'
           # For gnome users
           
@@ -92,6 +94,8 @@ jobs:
           mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/modern
           cp -fpR gnome-extension/screenshooter-mcp@deloget.com_legacy screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/legacy/screenshooter-mcp@deloget.com
           cp -fpR gnome-extension/screenshooter-mcp@deloget.com_modern screenshooter-mcp-${{ matrix.arch }}-stdio/dot.local/share/gnome-shell/extensions/modern/screenshooter-mcp@deloget.com
+          mkdir -p screenshooter-mcp-${{ matrix.arch }}-stdio/usr/share/screenshooter-mcp/skills
+          cp internal/tools/skills/SKILL.md screenshooter-mcp-${{ matrix.arch }}-stdio/usr/share/screenshooter-mcp/skills/
           cat > screenshooter-mcp-${{ matrix.arch }}-stdio/README.txt << 'EOF'
           # For gnome users
           
@@ -174,9 +178,11 @@ jobs:
           mkdir -p pkg/usr/lib/systemd/user
           mkdir -p pkg/usr/lib/screenshooter-mcp
           mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
+          mkdir -p pkg/usr/share/screenshooter-mcp/skills/
           mkdir -p control
           
           cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
+          cp internal/tools/skills/SKILL.md pkg/usr/share/screenshooter-mcp/skills/
 
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
 
@@ -217,8 +223,10 @@ jobs:
           mkdir -p pkg/etc/screenshooter-mcp
           mkdir -p pkg/usr/lib/screenshooter-mcp
           mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
+          mkdir -p pkg/usr/share/screenshooter-mcp/skills/
           
           cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
+          cp internal/tools/skills/SKILL.md pkg/usr/share/screenshooter-mcp/skills/
           
           echo '{"log_level":"info","color":"auto"}' > pkg/etc/screenshooter-mcp/config.json
           
@@ -295,9 +303,11 @@ jobs:
           mkdir -p pkg/usr/lib/systemd/user
           mkdir -p pkg/usr/lib/screenshooter-mcp
           mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
+          mkdir -p pkg/usr/share/screenshooter-mcp/skills/
           mkdir -p control
 
           cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
+          cp internal/tools/skills/SKILL.md pkg/usr/share/screenshooter-mcp/skills/
 
           echo '{"log_level":"info","color":"auto","listen":"127.0.0.1:11777"}' > pkg/etc/screenshooter-mcp/config.json
 
@@ -339,8 +349,10 @@ jobs:
           mkdir -p pkg/etc/screenshooter-mcp
           mkdir -p pkg/usr/lib/screenshooter-mcp
           mkdir -p pkg/usr/share/screenshooter-mcp/extensions/
+          mkdir -p pkg/usr/share/screenshooter-mcp/skills/
           
           cp -fpR gnome-extension/* pkg/usr/share/screenshooter-mcp/extensions/
+          cp internal/tools/skills/SKILL.md pkg/usr/share/screenshooter-mcp/skills/
           
           echo '{"log_level":"info","color":"auto"}' > pkg/etc/screenshooter-mcp/config.json
           

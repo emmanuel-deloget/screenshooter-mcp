@@ -11,7 +11,7 @@ MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 ### Screen Capture
 
 - **list_monitors** - List available displays with names, positions, and dimensions
-- **list_windows** - List open windows with titles and IDs
+- **list_windows** - List open windows with titles, IDs, and state (active, minimized, maximized, fullscreen)
 - **capture_screen** - Capture full screen or specific monitor (returns PNG)
 - **capture_window** - Capture window by title (partial match supported)
 - **capture_region** - Capture rectangular region from screen (returns PNG)
@@ -22,6 +22,15 @@ MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 - **analyze_image** - Analyze an image with a custom prompt
 - **extract_text** - Extract text as formatted markdown (OCR)
 - **find_region** - Find bounding box coordinates of a described element
+- **compare_images** - Compare two images and describe the differences
+
+### Pipeline Execution
+
+- **execute_capture_pipeline** - Chain multiple capture and vision operations in a single call
+
+### Agent Tools
+
+- **get_skill_info_for_agent** - Return agent skill documentation with tool descriptions and workflow examples
 
 ## Installation
 
@@ -157,7 +166,7 @@ List all available monitors with their names and aliases.
 
 ### list_windows
 
-List all open windows with their titles and X11 window IDs.
+List all open windows with their titles, X11 window IDs, and state (active, minimized, maximized, fullscreen).
 
 ### capture_screen
 
@@ -195,7 +204,8 @@ Arguments:
 - `image_base64`: Base64-encoded PNG image data
 - `prompt`: Text prompt describing what analysis to perform
 - `provider` (optional): Provider name; uses default if not specified
-
+- `timeout` (optional): Timeout in seconds; 0 uses provider default
+ 
 ### extract_text
 
 Extract text from an image as formatted markdown (OCR).
@@ -203,6 +213,7 @@ Extract text from an image as formatted markdown (OCR).
 Arguments:
 - `image_base64`: Base64-encoded PNG image data
 - `provider` (optional): Provider name; uses default if not specified
+- `timeout` (optional): Timeout in seconds; 0 uses provider default
 
 ### find_region
 
@@ -212,6 +223,44 @@ Arguments:
 - `image_base64`: Base64-encoded PNG image data
 - `description`: Description of the element to find
 - `provider` (optional): Provider name; uses default if not specified
+- `timeout` (optional): Timeout in seconds; 0 uses provider default
+
+### compare_images
+
+Compare two images and describe the differences.
+
+Arguments:
+- `image_base64`: Base64-encoded PNG image data (first image)
+- `image2_base64`: Base64-encoded PNG image data (second image)
+- `prompt` (optional): Comparison prompt; uses default if not specified
+- `provider` (optional): Provider name; uses default if not specified
+- `timeout` (optional): Timeout in seconds; 0 uses provider default
+
+### execute_capture_pipeline
+
+Execute a pipeline of capture and vision operations. Each step's output is pushed onto a stack for use by subsequent steps.
+
+Arguments:
+- `pipeline`: Ordered list of steps, each with `tool` and `parameters` fields
+
+Supported pipeline tools: `capture_screen`, `capture_window`, `capture_region`, `find_region`, `extract_text`, `analyze_image`, `compare_images`, `wait_for`.
+
+Example:
+```json
+{
+  "pipeline": [
+    {"tool": "capture_window", "parameters": {"title": "Terminal"}},
+    {"tool": "find_region", "parameters": {"description": "the error dialog"}},
+    {"tool": "capture_region", "parameters": {}},
+    {"tool": "extract_text", "parameters": {}}
+  ]
+}
+```
+
+### get_skill_info_for_agent
+
+Return the agent skill documentation. This tool provides a comprehensive guide
+to all available tools, workflow examples, and pipeline usage patterns.
 
 ## Vision Providers
 
