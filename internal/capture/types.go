@@ -87,6 +87,18 @@ type Window struct {
 
 	// Height is the window's height in pixels.
 	Height int
+
+	// Active indicates whether this window currently has focus.
+	Active bool
+
+	// Minimized indicates whether this window is minimized.
+	Minimized bool
+
+	// Maximized indicates whether this window is maximized.
+	Maximized bool
+
+	// Fullscreen indicates whether this window is in fullscreen mode.
+	Fullscreen bool
 }
 
 // WindowID is the type used to identify windows.

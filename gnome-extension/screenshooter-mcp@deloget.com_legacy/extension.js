@@ -46,21 +46,24 @@ var WindowsDBus = class WindowsDBus {
     }
 
     List() {
+        const focusWindow = global.display.get_focus_window();
         const windows = global.get_window_actors()
             .filter(a => !a.get_meta_window().is_skip_taskbar())
             .map(a => {
                 const w = a.get_meta_window();
                 const r = w.get_frame_rect();
                 return {
-                    id:        new GLib.Variant('t', w.get_stable_sequence()),
-                    title:     new GLib.Variant('s', w.get_title() || ''),
-                    pid:       new GLib.Variant('i', w.get_pid()),
-                    x:         new GLib.Variant('i', r.x),
-                    y:         new GLib.Variant('i', r.y),
-                    w:         new GLib.Variant('i', r.width),
-                    h:         new GLib.Variant('i', r.height),
-                    minimized: new GLib.Variant('b', w.minimized),
-                    maximized: new GLib.Variant('b', w.maximized),
+                    id:         new GLib.Variant('t', w.get_stable_sequence()),
+                    title:      new GLib.Variant('s', w.get_title() || ''),
+                    pid:        new GLib.Variant('i', w.get_pid()),
+                    x:          new GLib.Variant('i', r.x),
+                    y:          new GLib.Variant('i', r.y),
+                    w:          new GLib.Variant('i', r.width),
+                    h:          new GLib.Variant('i', r.height),
+                    minimized:  new GLib.Variant('b', w.minimized),
+                    maximized:  new GLib.Variant('b', w.maximized),
+                    activated:  new GLib.Variant('b', w === focusWindow),
+                    fullscreen: new GLib.Variant('b', w.fullscreen),
                 };
             });
         return new GLib.Variant('(aa{sv})', [windows]);

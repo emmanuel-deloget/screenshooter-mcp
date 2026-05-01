@@ -55,15 +55,17 @@ func (g *GnomeManager) IterateWindows(ctx context.Context) iter.Seq2[window.Info
 		}
 		for _, e := range raw {
 			w := window.Info{
-				ID:        e["id"].Value().(uint64),
-				Title:     e["title"].Value().(string),
-				PID:       e["pid"].Value().(int32),
-				X:         int(e["x"].Value().(int32)),
-				Y:         int(e["y"].Value().(int32)),
-				W:         int(e["w"].Value().(int32)),
-				H:         int(e["h"].Value().(int32)),
-				Minimized: e["minimized"].Value().(bool),
-				Maximized: e["maximized"].Value().(bool),
+				ID:         e["id"].Value().(uint64),
+				Title:      e["title"].Value().(string),
+				PID:        e["pid"].Value().(int32),
+				X:          int(e["x"].Value().(int32)),
+				Y:          int(e["y"].Value().(int32)),
+				W:          int(e["w"].Value().(int32)),
+				H:          int(e["h"].Value().(int32)),
+				Minimized:  e["minimized"].Value().(bool),
+				Maximized:  e["maximized"].Value().(bool),
+				Active:     e["activated"].Value().(bool),
+				Fullscreen: e["fullscreen"].Value().(bool),
 			}
 			if !yield(w, nil) {
 				return
