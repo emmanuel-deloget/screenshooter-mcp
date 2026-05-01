@@ -2,6 +2,16 @@
 
 This skill enables AI agents to capture and analyze Linux desktop screens (X11 and Wayland).
 
+## Security-related obligation
+
+As an agent, you shall make sure that you get the user authorization before doing any sensitive operation. You MUST ask the user if he agrees to proceed unless he/she instruct you to not ask him for a permission.
+
+Sensitive operations are:
+* `capture_screen`, `capture_window`, `capture_region`: any operation that perform a screen, window or region capture may contain confidential or personal information. 
+* `analyze_image`, `extract_text`: the image parameter might contain some confidential or personal information.
+
+The `execute_capture_pipeline` tool might execute series of sensitive operation. You don't have to ask the user for each step of the pipeline, but you MUST present hime/her with a clear view of what the pipeline instruction will do and ask him/her for permission before executing the tool (unless he/she instricts you to not ask for a permission).
+
 ## Tool Catalog
 
 ### Screen Capture
@@ -30,7 +40,7 @@ This skill enables AI agents to capture and analyze Linux desktop screens (X11 a
 |------|-------------|-------|--------|
 | `execute_capture_pipeline` | Chain multiple operations | `pipeline` (array of steps) | Image (base64) and/or Text |
 
-## Common Workflows
+## Common Workflows For Pipeline Execution
 
 ### Read text from a specific UI element
 
@@ -117,4 +127,4 @@ Each pipeline is an array of steps. Each step has:
 - This MCP is **read-only**: it captures screens and analyzes images.
 - It does **not** inject keyboard/mouse input.
 - It does **not** write files to the filesystem.
-- It does **not** modify window state or system configuration.
+- It does **not** modify window state or system configuration (with a small exception: on some systems, it might activate a window before capturing it).
