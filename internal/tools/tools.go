@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"time"
 
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/capture"
 	"github.com/emmanuel-deloget/screenshooter-mcp/internal/vision"
@@ -164,12 +165,18 @@ func (t *Tools) ListVisionProviders(ctx context.Context) ([]vision.ProviderInfo,
 //
 // The image argument should be PNG-encoded bytes. The prompt argument
 // specifies what analysis to perform. If provider is empty, the default
-// provider is used.
+// provider is used. If timeout is non-zero, it overrides the provider's
+// configured timeout for this call (in seconds).
 //
 // Returns the text response from the AI model.
-func (t *Tools) AnalyzeImage(ctx context.Context, image []byte, prompt string, provider string) (string, error) {
+func (t *Tools) AnalyzeImage(ctx context.Context, image []byte, prompt string, provider string, timeout int) (string, error) {
 	if t.vision == nil {
 		return "", fmt.Errorf("no vision providers configured")
+	}
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+		defer cancel()
 	}
 	return t.vision.AnalyzeWith(ctx, provider, image, prompt)
 }
@@ -177,13 +184,19 @@ func (t *Tools) AnalyzeImage(ctx context.Context, image []byte, prompt string, p
 // ExtractText performs OCR on an image and returns structured markdown text.
 //
 // The image argument should be PNG-encoded bytes. If provider is empty,
-// the default provider is used.
+// the default provider is used. If timeout is non-zero, it overrides the
+// provider's configured timeout for this call (in seconds).
 //
 // The prompt instructs the model to extract text and format it as markdown
 // preserving structure (headings, bold, lists, tables, code blocks).
-func (t *Tools) ExtractText(ctx context.Context, image []byte, provider string) (string, error) {
+func (t *Tools) ExtractText(ctx context.Context, image []byte, provider string, timeout int) (string, error) {
 	if t.vision == nil {
 		return "", fmt.Errorf("no vision providers configured")
+	}
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+		defer cancel()
 	}
 
 	const extractTextPrompt = `Extract all text from this image.
@@ -202,12 +215,18 @@ Maintain the original language.`
 //
 // The image argument should be PNG-encoded bytes. The description argument
 // specifies what element to find (e.g., "the search button", "the logo").
-// If provider is empty, the default provider is used.
+// If provider is empty, the default provider is used. If timeout is non-zero,
+// it overrides the provider's configured timeout for this call (in seconds).
 //
 // Returns the coordinates as x, y, width, height in pixels.
-func (t *Tools) FindRegion(ctx context.Context, image []byte, description string, provider string) (string, error) {
+func (t *Tools) FindRegion(ctx context.Context, image []byte, description string, provider string, timeout int) (string, error) {
 	if t.vision == nil {
 		return "", fmt.Errorf("no vision providers configured")
+	}
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+		defer cancel()
 	}
 
 	prompt := fmt.Sprintf(`Find the bounding box coordinates of: %s
