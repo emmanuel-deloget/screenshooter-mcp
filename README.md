@@ -359,7 +359,7 @@ See `tests/integration/README.md` for requirements and supported configurations.
 | Fedora 43 | KDE / Wayland | ✅  | |
 | Ubuntu 24.04 | GNOME / Wayland | ✅  | ⚠️ Uses `screenshooter-mcp@deloget.com` GNOME extension |
 | Ubuntu 24.04 | GNOME / X11 | ✅  |  |
-| Ubuntu 24.04 | KDE / Wayland | ❌ | `list_windows` times out — KWin 5 (Plasma 5) uses `clientList()` API, upstream `perfuncted` library only supports KWin 6 `windowList()` |
+| Ubuntu 24.04 | KDE / Wayland | ✅  |  |
 | Ubuntu 24.04 | KDE / X11 | ✅  |  |
 | Ubuntu 25.10 | GNOME / Wayland | ✅  | ⚠️ Uses `screenshooter-mcp@deloget.com` GNOME extension |
 | Ubuntu 25.10 | KDE / Wayland | ✅  |  |
