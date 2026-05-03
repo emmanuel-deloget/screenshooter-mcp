@@ -17,8 +17,9 @@ Key features include:
 
 ### Commits
 
-#### v1.0.0 (*unreleased*)
+#### v1.0.0-rc9
 
+- cmd: bump version number to 1.0.0-rc9
 - doc: add more developper oriented documentation (Emmanuel Deloget)
 - cmd: the version is defined as a constant (Emmanuel Deloget)
 - doc: version 0.1.0 never existed, 1.0.0 will (Emmanuel Deloget)
