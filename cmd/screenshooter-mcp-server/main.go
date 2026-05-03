@@ -114,6 +114,10 @@ type Options struct {
 	Stdio    bool   `long:"stdio" description:"Run in stdio mode (overrides --listen)"`
 }
 
+const (
+	ScreenshooterMCPVersion = "v1.0.0-rc8"
+)
+
 func main() {
 	opts := Options{}
 	parser := flags.NewParser(&opts, flags.Default)
@@ -125,7 +129,7 @@ func main() {
 				os.Exit(0)
 			}
 			if flagsErr.Type == flags.ErrCommandRequired {
-				fmt.Fprintln(os.Stderr, "Error: command required")
+				_, _ = fmt.Fprintln(os.Stderr, "Error: command required")
 				os.Exit(1)
 			}
 		}
@@ -156,7 +160,7 @@ func main() {
 	}
 
 	if opts.Version {
-		fmt.Println("screenshot-mcp-server version 0.1.0")
+		fmt.Println("screenshot-mcp-server version " + ScreenshooterMCPVersion)
 		os.Exit(0)
 	}
 
@@ -249,7 +253,7 @@ func run(opts *Options, cfg *config.Config) error {
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "screenshooter-mcp",
-		Version: "0.1.0",
+		Version: ScreenshooterMCPVersion,
 	}, nil)
 
 	registerTools(server, serverTools)
@@ -314,7 +318,7 @@ func runHttpBridge(opts *Options, cfg *config.Config) error {
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "screenshooter-mcp",
-		Version: "0.1.0",
+		Version: ScreenshooterMCPVersion,
 	}, nil)
 
 	serverTools := tools.NewTools(capt)
