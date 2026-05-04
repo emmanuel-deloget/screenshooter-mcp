@@ -1,21 +1,62 @@
 # Changelog
 
-## Version v1.0.0 (*unreleased*)
+## ScreenshooterMCP v1.0.0
 
-### Release note
+### What's Inside
 
-This is an unreleased version, this section is subject to change.
+#### Screen Capture
 
-This release represents the first stable version of ScreenshooterMCP. It provides comprehensive screenshot capabilities for AI agents on Linux (X11 and Wayland), with support for AI vision analysis through multiple provider types (OpenAI-compatible, Anthropic, HuggingFace). 
+ScreenshooterMCP automatically detects your display server (X11 or Wayland) and provides a unified set of capture tools:
 
-Key features include:
-- Screen, window, and region capture
-- AI vision tools (analyze, OCR, find region, compare images)
-- Pipeline execution for chaining operations
-- GNOME Shell extension for window management
-- Packaging for Debian, Fedora, and Alpine
+- **list_monitors** — Discover all connected displays with their names, positions, and resolutions
+- **capture_screen** — Grab the entire desktop or a specific monitor as a PNG
+- **capture_window** — Capture any open window by title (partial matching supported), with window state detection (active, minimized, maximized, fullscreen)
+- **capture_region** — Extract a precise rectangular area from the virtual screen
+
+#### AI-Powered Vision Analysis
+
+Configure your favorite AI vision providers and let agents understand what they see:
+
+- **analyze_image** — Ask natural language questions about any screenshot
+- **extract_text** — Pull structured markdown text from images (OCR)
+- **find_region** — Locate UI elements by description and get their bounding box coordinates
+- **compare_images** — Spot differences between two screenshots
+- **list_vision_providers** — See which AI providers are configured and ready
+
+Three provider types are supported out of the box:
+
+- **OpenAI-compatible** — Works with OpenAI, Ollama, Mistral, Groq, and any compatible API
+- **Anthropic Claude** — Direct access to Claude's vision capabilities
+- **HuggingFace** — Tap into the HuggingFace Inference API
+
+#### Pipeline Execution
+
+Chain multiple operations together in a single call with `execute_capture_pipeline`. Capture a window, find a specific element, zoom in on a region, and extract text — all in one request.
+
+#### GNOME Shell Extension
+
+For modern GNOME environments where direct window enumeration is restricted, we include a purpose-built GNOME Shell extension that exposes window management via D-Bus. It auto-detects your GNOME version and installs the compatible variant (legacy for GNOME 43-44, modern for GNOME 45+).
+
+#### Flexible Deployment
+
+- Stdio mode (default) — Drop-in integration with Claude Desktop, Cursor, and other MCP clients
+- HTTP server mode — Run as a networked service with Streamable HTTP transport
+- JSON configuration — Fine-tune logging, vision providers, and network settings via config files
+
+#### Tested Across Distributions
+
+ScreenshooterMCP has been validated through integration tests on Debian 12/13, Fedora 43, and Ubuntu 24.04/25.10 — across both GNOME and KDE, on both X11 and Wayland.
 
 ### Commits
+
+#### v1.0.0
+
+- cmd: bump version number to 1.0.0
+- config: fix some config unit tests (Emmanuel Deloget)
+- tools: don't allow the encoding of a nil image (Emmanuel Deloget)
+- cmd: add more unit tests on the main program (Emmanuel Deloget)
+- internal: improve test coverage (Emmanuel Deloget)
+- go: update some go dependencies (Emmanuel Deloget)
 
 #### v1.0.0-rc9
 
