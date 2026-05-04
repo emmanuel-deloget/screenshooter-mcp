@@ -17,7 +17,7 @@ func TestVisionConfigParsing(t *testing.T) {
 		{
 			name:    "empty config",
 			json:    `{}`,
-			wantErr:  false,
+			wantErr: false,
 			validate: func(t *testing.T, cfg *Config) {
 				if cfg.Vision != nil {
 					t.Error("expected nil Vision for empty config")
@@ -39,7 +39,7 @@ func TestVisionConfigParsing(t *testing.T) {
 					]
 				}
 			}`,
-			wantErr:  false,
+			wantErr: false,
 			validate: func(t *testing.T, cfg *Config) {
 				if cfg.Vision == nil {
 					t.Fatal("expected non-nil Vision")
@@ -85,7 +85,7 @@ func TestVisionConfigParsing(t *testing.T) {
 					]
 				}
 			}`,
-			wantErr:  false,
+			wantErr: false,
 			validate: func(t *testing.T, cfg *Config) {
 				if cfg.Vision == nil {
 					t.Fatal("expected non-nil Vision")
@@ -126,7 +126,7 @@ func TestVisionConfigParsing(t *testing.T) {
 					]
 				}
 			}`,
-			wantErr:  false,
+			wantErr: false,
 			validate: func(t *testing.T, cfg *Config) {
 				providers := cfg.Vision.Providers
 				if providers[0].DefaultTimeout() != 20 {
@@ -165,22 +165,31 @@ func TestDefaultConfigHasNilVision(t *testing.T) {
 }
 
 func TestConfigPath(t *testing.T) {
-	tests := []struct {
+	type testConfigPath struct {
 		name      string
 		xdgConfig string
 		home      string
 		want      string
-	}{
+	}
+
+	tests := []testConfigPath{
 		{
 			name:      "XDG_CONFIG_HOME set",
 			xdgConfig: "/custom/config",
-			want:       "/custom/config/screenshooter-mcp/config.json",
+			want:      "/custom/config/screenshooter-mcp/config.json",
 		},
-		{
+	}
+
+	// the GitHub CI environment prevent us to set HOME, so we have to use
+	// the real HOME value provided by the environment. If there is none,
+	// then this test cannot run.
+	home, err := os.UserHomeDir()
+	if err == nil && home != "" {
+		tests = append(tests, testConfigPath{
 			name: "use home directory",
-			home: "/home/testuser",
-			want: "/home/testuser/.config/screenshooter-mcp/config.json",
-		},
+			home: home,
+			want: home + "/.config/screenshooter-mcp/config.json",
+		})
 	}
 
 	for _, tt := range tests {
@@ -188,10 +197,6 @@ func TestConfigPath(t *testing.T) {
 			if tt.xdgConfig != "" {
 				t.Setenv("XDG_CONFIG_HOME", tt.xdgConfig)
 			}
-			if tt.home != "" {
-				t.Setenv("HOME", tt.home)
-			}
-
 			cfg := &Config{}
 			got := cfg.Path()
 			if got != tt.want {
