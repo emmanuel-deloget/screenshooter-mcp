@@ -283,6 +283,9 @@ func (t *Tools) CompareImages(ctx context.Context, image1 []byte, image2 []byte,
 //
 // Returns the PNG-encoded data, or an error if encoding fails.
 func encodeImage(img image.Image) ([]byte, error) {
+	if img == nil {
+		return nil, fmt.Errorf("cannot encode nil image")
+	}
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {
 		return nil, fmt.Errorf("failed to encode image: %w", err)

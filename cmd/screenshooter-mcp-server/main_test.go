@@ -130,3 +130,73 @@ func TestParseRegionNumbers(t *testing.T) {
 		})
 	}
 }
+
+func TestRegionResultString(t *testing.T) {
+	tests := []struct {
+		name   string
+		result RegionResult
+		wantX  int
+		wantY  int
+		wantW  int
+		wantH  int
+	}{
+		{
+			name:   "valid result",
+			result: RegionResult{X: 10, Y: 20, Width: 30, Height: 40},
+			wantX:  10,
+			wantY:  20,
+			wantW:  30,
+			wantH:  40,
+		},
+		{
+			name:   "empty result",
+			result: RegionResult{},
+			wantX:  0,
+			wantY:  0,
+			wantW:  0,
+			wantH:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.result.X != tt.wantX {
+				t.Errorf("RegionResult.X = %v, want %v", tt.result.X, tt.wantX)
+			}
+			if tt.result.Y != tt.wantY {
+				t.Errorf("RegionResult.Y = %v, want %v", tt.result.Y, tt.wantY)
+			}
+			if tt.result.Width != tt.wantW {
+				t.Errorf("RegionResult.Width = %v, want %v", tt.result.Width, tt.wantW)
+			}
+			if tt.result.Height != tt.wantH {
+				t.Errorf("RegionResult.Height = %v, want %v", tt.result.Height, tt.wantH)
+			}
+		})
+	}
+}
+
+func TestIndex(t *testing.T) {
+	tests := []struct {
+		name   string
+		s      string
+		substr string
+		want   int
+	}{
+		{"found at start", "hello world", "hello", 0},
+		{"found in middle", "hello world", "world", 6},
+		{"found at end", "hello world", "world", 6},
+		{"not found", "hello world", "foo", -1},
+		{"empty string", "", "foo", -1},
+		{"empty substr", "hello", "", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := index(tt.s, tt.substr)
+			if got != tt.want {
+				t.Errorf("index() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
