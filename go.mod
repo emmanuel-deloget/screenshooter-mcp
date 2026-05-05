@@ -3,20 +3,19 @@ module github.com/emmanuel-deloget/screenshooter-mcp
 go 1.26.2
 
 require (
-	github.com/anthropics/anthropic-sdk-go v1.38.0
+	github.com/anthropics/anthropic-sdk-go v1.39.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jezek/xgb v1.3.1
 	github.com/mattn/go-isatty v0.0.22
 	github.com/modelcontextprotocol/go-sdk v1.6.0
-	github.com/nskaggs/perfuncted v0.2.2
+	github.com/nskaggs/perfuncted v0.2.5
 	github.com/rs/zerolog v1.35.1
 	github.com/sashabaranov/go-openai v1.41.2
 )
 
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
-	github.com/bendahl/uinput v1.7.0 // indirect
 	github.com/buger/jsonparser v1.2.0 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
