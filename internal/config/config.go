@@ -111,6 +111,7 @@ type VisionProviderConfig struct {
 
 	// Type specifies the API protocol to use.
 	// Valid values: "openai-compatible", "anthropic", "huggingface"
+	// For openai-compatible: works with OpenAI, Ollama, Mistral, Groq, NVIDIA NIM, etc.
 	Type string `json:"type"`
 
 	// BaseURL is the API endpoint URL.
