@@ -297,6 +297,14 @@ Configure AI vision providers in your config file to enable image analysis:
         "model": "org/vision-model",
         "api_key": "hf_...",
         "timeout": 30
+      },
+      {
+        "name": "nvidia",
+        "type": "openai-compatible",
+        "base_url": "https://ai.api.nvidia.com/v1",
+        "model": "nvidia/neva-22b",
+        "api_key": "nvapi-...",
+        "timeout": 30
       }
     ]
   }
@@ -304,7 +312,7 @@ Configure AI vision providers in your config file to enable image analysis:
 ```
 
 Provider types:
-- `openai-compatible`: Works with OpenAI, Ollama, Mistral, Groq, and any OpenAI-compatible API
+- `openai-compatible`: Works with OpenAI, Ollama, Mistral, Groq, NVIDIA NIM, and any OpenAI-compatible API
 - `anthropic`: Anthropic Claude API
 - `huggingface`: HuggingFace Inference API
 
