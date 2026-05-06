@@ -41,21 +41,28 @@ var log zerolog.Logger
 //
 // This function must be called before any logging functions.
 // It is typically called at application startup.
-func Init(level string, color string) {
+func Init(level string, color string, format string) {
 	var output io.Writer = os.Stderr
 
-	useColor := false
-	switch color {
-	case "always":
-		useColor = true
-	case "never":
-		useColor = false
-	case "auto":
-		useColor = isatty.IsTerminal(os.Stderr.Fd())
-	}
+	if format == "json" {
+		// JSON format: use raw stderr output (zerolog's native format)
+		output = os.Stderr
+	} else {
+		// Text format: always use console writer for human-readable output
+		useColor := false
+		switch color {
+		case "always":
+			useColor = true
+		case "never":
+			useColor = false
+		case "auto":
+			useColor = isatty.IsTerminal(os.Stderr.Fd())
+		}
 
-	if useColor {
-		output = zerolog.ConsoleWriter{Out: os.Stderr}
+		output = zerolog.ConsoleWriter{
+			Out:     os.Stderr,
+			NoColor: !useColor,
+		}
 	}
 
 	zerolog.TimeFieldFormat = "2006-01-02 15:04:05"

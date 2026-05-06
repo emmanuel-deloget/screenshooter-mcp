@@ -93,13 +93,14 @@ import (
 // The --stdio flag is a convenience flag that forces stdio mode, equivalent
 // to setting --listen to "stdio". It overrides any --listen value.
 type Options struct {
-	Version  bool   `short:"v" long:"version" description:"Show version"`
-	Help     bool   `short:"h" long:"help" description:"Show help"`
-	Config   string `long:"config" description:"Path to config file"`
-	LogLevel string `short:"l" long:"log-level" description:"Log level" default:"info"`
-	Color    string `long:"color" description:"Color output: always|never|auto" default:"auto"`
-	Listen   string `long:"listen" description:"Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio' for stdio mode" default:""`
-	Stdio    bool   `long:"stdio" description:"Run in stdio mode (overrides --listen)"`
+	Version   bool   `short:"v" long:"version" description:"Show version"`
+	Help      bool   `short:"h" long:"help" description:"Show help"`
+	Config    string `long:"config" description:"Path to config file"`
+	LogLevel  string `short:"l" long:"log-level" description:"Log level" default:"info"`
+	LogFormat string `long:"log-format" description:"Log format: text|json" default:"text"`
+	Color     string `long:"color" description:"Color output: always|never|auto" default:"auto"`
+	Listen    string `long:"listen" description:"Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio' for stdio mode" default:""`
+	Stdio     bool   `long:"stdio" description:"Run in stdio mode (overrides --listen)"`
 }
 
 const (
@@ -133,6 +134,9 @@ func main() {
 	if opts.LogLevel != "info" {
 		cfg.LogLevel = opts.LogLevel
 	}
+	if opts.LogFormat != "text" {
+		cfg.LogFormat = opts.LogFormat
+	}
 	if opts.Color != "auto" {
 		cfg.Color = opts.Color
 	}
@@ -140,7 +144,7 @@ func main() {
 		cfg.Listen = opts.Listen
 	}
 
-	logging.Init(cfg.LogLevel, cfg.Color)
+	logging.Init(cfg.LogLevel, cfg.Color, cfg.LogFormat)
 
 	if opts.Help {
 		parser.WriteHelp(os.Stdout)

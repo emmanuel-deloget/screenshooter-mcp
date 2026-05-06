@@ -83,6 +83,11 @@ type Config struct {
 	// Default: auto (use colors if terminal supports them)
 	Color string `json:"color"`
 
+	// LogFormat controls the format of log output.
+	// Valid values: text, json
+	// Default: text
+	LogFormat string `json:"log_format"`
+
 	// Listen specifies the TCP address for HTTP mode.
 	// If empty, the server runs in stdio mode.
 	// Example: "127.0.0.1:11777"
@@ -181,9 +186,10 @@ func (p *VisionProviderConfig) DefaultTimeout() int {
 //   - TempAccessDuration: 300 (5 minutes)
 func DefaultConfig() *Config {
 	return &Config{
-		LogLevel:          "info",
-		Color:             "auto",
-		Listen:            "",
+		LogLevel:           "info",
+		Color:              "auto",
+		LogFormat:          "text",
+		Listen:             "",
 		TempAccessDuration: 300,
 	}
 }

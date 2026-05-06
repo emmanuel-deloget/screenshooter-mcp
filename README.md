@@ -116,6 +116,7 @@ Options:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `log_level` | string | `"info"` | Log level: debug, info, warn, error |
+| `log_format` | string | `"text"` | Log format: text, json |
 | `color` | string | `"auto"` | Color output: always, never, auto |
 | `listen` | string | `""` | HTTP listen address or empty for stdio |
 | `vision` | object | `null` | AI vision providers configuration |
@@ -129,6 +130,7 @@ Options:
 -h, --help            Show help
 --config              Path to config file
 -l, --log-level       Log level: debug|info|warn|error
+--log-format          Log format: text|json
 --color               Color output: always|never|auto
 --listen             Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio'
 --stdio              Force stdio mode (overrides --listen)
@@ -147,6 +149,7 @@ Default config:
 ```json
 {
   "log_level": "info",
+  "log_format": "text",
   "color": "auto",
   "listen": "",
   "temp_access_duration": 300
