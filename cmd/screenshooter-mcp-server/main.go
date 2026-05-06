@@ -40,6 +40,8 @@
 //   - compare_images: Compares two images and describes the differences
 //   - execute_capture_pipeline: Chains multiple capture and vision operations
 //   - get_skill_info_for_agent: Returns agent skill documentation
+//   - list_tool_access: Lists all tools with their access status
+//   - allow_tool_access: Grants temporary access to a restricted tool
 //
 // Usage:
 //
@@ -360,6 +362,8 @@ func runHttpBridge(opts *Options, cfg *config.Config) error {
 //  10. compare_images - Compares two images and describes differences
 //  11. execute_capture_pipeline - Chains multiple capture and vision operations
 //  12. get_skill_info_for_agent - Returns agent skill documentation
+//  13. list_tool_access - Lists all tools with their access status
+//  14. allow_tool_access - Grants temporary access to a restricted tool
 //
 // Each tool is wrapped with error handling that:
 //   - Logs the tool call with parameters for debugging

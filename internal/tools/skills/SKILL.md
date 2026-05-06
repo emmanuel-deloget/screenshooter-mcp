@@ -40,6 +40,19 @@ The `execute_capture_pipeline` tool might execute series of sensitive operation.
 |------|-------------|-------|--------|
 | `execute_capture_pipeline` | Chain multiple operations | `pipeline` (array of steps) | Image (base64) and/or Text |
 
+### Access Management
+
+| Tool | Description | Input | Output |
+|------|-------------|-------|--------|
+| `list_tool_access` | List all tools with access status | none | JSON object (tool → allow/deny/ask) |
+| `allow_tool_access` | Grant temporary tool access | `tool` (required), `duration` (opt) | Text confirmation |
+
+### Agent Tools
+
+| Tool | Description | Input | Output |
+|------|-------------|-------|--------|
+| `get_skill_info_for_agent` | Return skill documentation | none | Markdown text |
+
 ## Common Workflows For Pipeline Execution
 
 ### Read text from a specific UI element
@@ -128,3 +141,19 @@ Each pipeline is an array of steps. Each step has:
 - It does **not** inject keyboard/mouse input.
 - It does **not** write files to the filesystem.
 - It does **not** modify window state or system configuration (with a small exception: on some systems, it might activate a window before capturing it).
+
+## Tool Access Control
+
+Some tools require explicit user authorization. The server enforces access policies configured in `config.json`:
+
+- **`allow`**: Tool is always available
+- **`deny`**: Tool returns an error
+- **`ask`**: Tool returns an error instructing you to call `allow_tool_access` to grant temporary access
+
+Tools that are always available: `list_monitors`, `list_vision_providers`, `get_skill_info_for_agent`, `list_tool_access`, `allow_tool_access`.
+
+All other tools default to `ask` if not explicitly configured.
+
+When a tool returns an access-denied error, ask the user for permission before proceeding. If the user agrees, call `allow_tool_access` with the tool name to grant temporary access. Use `list_tool_access` to see the current access status of all tools. Access granted by `allow_tool_access` is temporary — future calls to the same tool may be denied again once the grant expires. Do not assume that a previous authorization is still valid; if access is denied again, repeat the same procedure.
+
+Note: tools with a `deny` policy cannot be allowed through `allow_tool_access`. Only tools with an `ask` policy can be temporarily granted.

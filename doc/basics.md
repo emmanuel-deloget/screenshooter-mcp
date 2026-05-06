@@ -4,7 +4,29 @@
 
 ```
 screenshooter-mcp/
-├── cmd/screenshooter-mcp-server/   # Main entrypoint, tool registration
+├── cmd/screenshooter-mcp-server/   # Main entrypoint
+│   ├── main.go                     # Server setup, tool registration
+│   ├── access/                     # Tool access policy management
+│   │   ├── access.go               # AccessManager implementation
+│   │   └── access_test.go          # Tests
+│   ├── mcptools/                   # MCP tool implementations (one file per tool)
+│   │   ├── allow_tool_access.go
+│   │   ├── analyze_image.go
+│   │   ├── capture_region.go
+│   │   ├── capture_screen.go
+│   │   ├── capture_window_linux.go
+│   │   ├── compare_images.go
+│   │   ├── empty_args.go
+│   │   ├── execute_capture_pipeline.go
+│   │   ├── extract_text.go
+│   │   ├── find_region.go
+│   │   ├── get_skill_info_for_agent.go
+│   │   ├── list_monitors.go
+│   │   ├── list_tool_access.go
+│   │   ├── list_vision_providers.go
+│   │   └── list_windows_linux.go
+│   └── utils/                      # Shared utilities
+│       └── access.go               # Access check helper
 ├── internal/
 │   ├── capture/                    # Screen capture implementations
 │   │   ├── types.go                # Core interfaces (ScreenCapture, Window, Monitor)
@@ -16,7 +38,7 @@ screenshooter-mcp/
 │   │       └── gnome.go            # D-Bus GNOME window manager
 │   ├── config/                     # Configuration loading (XDG-based)
 │   ├── logging/                    # Structured logging (zerolog)
-│   ├── tools/                      # MCP tool implementations
+│   ├── tools/                      # Core tool logic and pipeline
 │   │   ├── tools.go                # Core tools (capture_*, list_*, vision_*)
 │   │   ├── pipeline.go             # Pipeline executor (stack-based chaining)
 │   │   └── skills/
@@ -48,17 +70,17 @@ screenshooter-mcp/
 ┌─────────────────────▼────────────────────────────────┐
 │                  MCP Server (Go)                     │
 │  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐ │
-│  │   tools/    │  │   config/   │  │   capture/    │ │
-│  │ capture_*   │──│             │──│   x11/        │ │
+│  │  mcptools/  │  │   access/   │  │   capture/    │ │
+│  │ capture_*   │──│AccessManager│  │   x11/        │ │
 │  │ list_*      │  │             │  │   wayland/    │ │
-│  │ pipeline    │  │             │  └───────────────┘ │
-│  │ vision_*    │  │             │                    │
-│  └─────────────┘  └─────────────┘  ┌───────────────┐ │
-│                                    │   vision/     │ │
-│                                    │   openai      │ │
-│                                    │   anthropic   │ │
-│                                    │   huggingface │ │
-│                                    └───────────────┘ │
+│  │ pipeline    │  └─────────────┘  └───────────────┘ │
+│  │ vision_*    │                                    │
+│  └─────────────┘  ┌─────────────┐  ┌───────────────┐ │
+│                   │   config/   │  │   vision/     │ │
+│                   │             │  │   openai      │ │
+│                   │             │  │   anthropic   │ │
+│                   │             │  │   huggingface │ │
+│                   └─────────────┘  └───────────────┘ │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -77,6 +99,8 @@ screenshooter-mcp/
 | Vision | `find_region` | Find element bounding box coordinates |
 | Vision | `compare_images` | Compare two images, describe differences |
 | Pipeline | `execute_capture_pipeline` | Chain capture/vision operations |
+| Access | `list_tool_access` | List all tools with access status |
+| Access | `allow_tool_access` | Grant temporary access to a restricted tool |
 | Agent | `get_skill_info_for_agent` | Return agent skill documentation |
 
 ## Build & Test
@@ -110,11 +134,12 @@ go fmt ./...
 
 ## Adding a New Tool
 
-1. **Add method to `internal/tools/tools.go`** - Implement the tool logic
-2. **Register in `cmd/screenshooter-mcp-server/main.go`** - Add input struct, call `mcp.AddTool()`
+1. **Add implementation in `cmd/screenshooter-mcp-server/mcptools/`** - Create a new file (e.g., `my_tool.go`) with the tool handler function
+2. **Register in `cmd/screenshooter-mcp-server/main.go`** - Call `mcp.AddTool()` and `am.RegisterTool()` in `registerTools()`
 3. **Update tool list comments** - In main.go package doc and `registerTools()` doc
 4. **Update `README.md`** - Add to features list and MCP Tools section
 5. **Update `internal/tools/skills/SKILL.md`** - Add to tool catalog and workflows if applicable
+6. **Update `doc/basics.md`** - Add to the available tools table
 
 ### Pipeline Support
 
