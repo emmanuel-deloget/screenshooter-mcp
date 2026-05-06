@@ -144,7 +144,7 @@ func main() {
 		cfg.Listen = opts.Listen
 	}
 
-	logging.Init(cfg.LogLevel, cfg.Color)
+	logging.Init(cfg.LogLevel, cfg.Color, cfg.LogFormat)
 
 	if opts.Help {
 		parser.WriteHelp(os.Stdout)

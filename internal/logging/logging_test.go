@@ -9,30 +9,32 @@ import (
 
 func TestInit(t *testing.T) {
 	tests := []struct {
-		name  string
-		level string
-		color string
+		name   string
+		level  string
+		color  string
+		format string
 	}{
-		{"debug level", "debug", "never"},
-		{"info level", "info", "never"},
-		{"warn level", "warn", "never"},
-		{"error level", "error", "never"},
-		{"default level", "invalid", "never"},
-		{"color always", "info", "always"},
-		{"color never", "info", "never"},
-		{"color auto", "info", "auto"},
+		{"debug level", "debug", "never", "text"},
+		{"info level", "info", "never", "text"},
+		{"warn level", "warn", "never", "text"},
+		{"error level", "error", "never", "text"},
+		{"default level", "invalid", "never", "text"},
+		{"color always", "info", "always", "text"},
+		{"color never", "info", "never", "text"},
+		{"color auto", "info", "auto", "text"},
+		{"json format", "info", "never", "json"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Should not panic
-			Init(tt.level, tt.color)
+			Init(tt.level, tt.color, tt.format)
 		})
 	}
 }
 
 func TestLogger(t *testing.T) {
-	Init("info", "never")
+	Init("info", "never", "text")
 
 	logger := Logger()
 	if logger == nil {
@@ -49,7 +51,7 @@ func TestLoggingOutput(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	Init("info", "never")
+	Init("info", "never", "text")
 	Info().Str("key", "value").Msg("test message")
 
 	w.Close()
@@ -62,8 +64,8 @@ func TestLoggingOutput(t *testing.T) {
 	if !strings.Contains(output, "test message") {
 		t.Errorf("expected log output to contain 'test message', got: %s", output)
 	}
-	if !strings.Contains(output, "info") {
-		t.Errorf("expected log output to contain 'info' level, got: %s", output)
+	if !strings.Contains(output, "INF") && !strings.Contains(output, "info") {
+		t.Errorf("expected log output to contain 'INF' or 'info' level, got: %s", output)
 	}
 }
 
@@ -74,7 +76,7 @@ func TestDebugLogging(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	Init("debug", "never")
+	Init("debug", "never", "text")
 	Debug().Msg("debug message")
 
 	w.Close()
@@ -95,7 +97,7 @@ func TestWarnLogging(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	Init("warn", "never")
+	Init("warn", "never", "text")
 	Warn().Msg("warn message")
 
 	w.Close()
@@ -116,7 +118,7 @@ func TestErrorLogging(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	Init("error", "never")
+	Init("error", "never", "text")
 	Error().Err(nil).Msg("error message")
 
 	w.Close()
@@ -137,7 +139,7 @@ func TestInfoLevelFiltersDebug(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	Init("info", "never")
+	Init("info", "never", "text")
 	Debug().Msg("should not appear")
 	Info().Msg("should appear")
 
