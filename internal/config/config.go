@@ -27,6 +27,11 @@
 //	  "log_level": "info",
 //	  "color": "auto",
 //	  "listen": "127.0.0.1:11777",
+//	  "access": {
+//	    "capture_screen": "deny",
+//	    "capture_window": "ask"
+//	  },
+//	  "temp_access_duration": 300,
 //	  "vision": {
 //	    "providers": [
 //	      {
@@ -86,6 +91,16 @@ type Config struct {
 	// Vision contains configuration for AI vision providers.
 	// If empty or nil, vision tools are not available.
 	Vision *VisionConfig `json:"vision,omitempty"`
+
+	// Access defines tool access policies (tool name -> "allow", "deny", "ask").
+	// Tools not listed default to "ask".
+	// Exempt tools (list_monitors, list_vision_providers, get_skill_info_for_agent)
+	// are always allowed regardless of this setting.
+	Access map[string]string `json:"access,omitempty"`
+
+	// TempAccessDuration is the default duration in seconds for temporary
+	// access grants via allow_tool_access. Default: 300 (5 minutes).
+	TempAccessDuration int `json:"temp_access_duration,omitempty"`
 }
 
 // VisionConfig holds the configuration for AI vision providers.
@@ -163,11 +178,13 @@ func (p *VisionProviderConfig) DefaultTimeout() int {
 //   - LogLevel: "info"
 //   - Color: "auto"
 //   - Listen: "" (stdio mode)
+//   - TempAccessDuration: 300 (5 minutes)
 func DefaultConfig() *Config {
 	return &Config{
-		LogLevel: "info",
-		Color:    "auto",
-		Listen:   "",
+		LogLevel:          "info",
+		Color:             "auto",
+		Listen:            "",
+		TempAccessDuration: 300,
 	}
 }
 
