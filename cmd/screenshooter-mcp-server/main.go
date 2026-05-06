@@ -26,22 +26,7 @@
 //	  "listen": "127.0.0.1:11777"
 //	}
 //
-// Available tools:
-//
-//   - list_monitors: Lists all available monitors with their names and aliases
-//   - list_windows: Lists all open windows with their titles, IDs, and state
-//   - capture_screen: Captures the full screen or a specific monitor
-//   - capture_window: Captures a specific window by its title (partial match supported)
-//   - capture_region: Captures a region from the virtual screen
-//   - list_vision_providers: Lists configured AI vision providers
-//   - analyze_image: Analyzes an image with a custom prompt
-//   - extract_text: Extracts text from an image as formatted markdown
-//   - find_region: Finds bounding box coordinates of a described element
-//   - compare_images: Compares two images and describes the differences
-//   - execute_capture_pipeline: Chains multiple capture and vision operations
-//   - get_skill_info_for_agent: Returns agent skill documentation
-//   - list_tool_access: Lists all tools with their access status
-//   - allow_tool_access: Grants temporary access to a restricted tool
+// Available tools: the list of available tools is defined in registerTools().
 //
 // Usage:
 //
@@ -348,22 +333,6 @@ func runHttpBridge(opts *Options, cfg *config.Config) error {
 }
 
 // registerTools registers all MCP tools with the server.
-//
-// This function creates and registers MCP tools with the MCP server:
-//  1. list_monitors - Lists all available monitors with their names and aliases
-//  2. list_windows - Lists all open windows with their titles, IDs, and state
-//  3. capture_screen - Captures the full screen or a specific monitor
-//  4. capture_window - Captures a specific window by its title
-//  5. capture_region - Captures a region from the virtual screen
-//  6. list_vision_providers - Lists configured vision providers
-//  7. analyze_image - Analyzes an image with a custom prompt
-//  8. extract_text - Extracts text from an image as markdown
-//  9. find_region - Finds bounding box coordinates of a described element
-//  10. compare_images - Compares two images and describes differences
-//  11. execute_capture_pipeline - Chains multiple capture and vision operations
-//  12. get_skill_info_for_agent - Returns agent skill documentation
-//  13. list_tool_access - Lists all tools with their access status
-//  14. allow_tool_access - Grants temporary access to a restricted tool
 //
 // Each tool is wrapped with error handling that:
 //   - Logs the tool call with parameters for debugging
