@@ -110,8 +110,9 @@ type VisionProviderConfig struct {
 	Name string `json:"name"`
 
 	// Type specifies the API protocol to use.
-	// Valid values: "openai-compatible", "anthropic", "huggingface"
+	// Valid values: "openai-compatible", "anthropic", "huggingface", "gemini"
 	// For openai-compatible: works with OpenAI, Ollama, Mistral, Groq, NVIDIA NIM, etc.
+	// For gemini: supports both Gemini API (with api_key) and Vertex AI (with project/location).
 	Type string `json:"type"`
 
 	// BaseURL is the API endpoint URL.
@@ -127,6 +128,17 @@ type VisionProviderConfig struct {
 	// APIKey is the authentication key for the provider.
 	// Optional for local providers like Ollama.
 	APIKey string `json:"api_key,omitempty"`
+
+	// Project is the GCP project ID for Vertex AI.
+	// Required for Vertex AI mode (gemini provider with Vertex AI backend).
+	// Optional for other providers.
+	Project string `json:"project,omitempty"`
+
+	// Location is the GCP location/region for Vertex AI.
+	// Required for Vertex AI mode (gemini provider with Vertex AI backend).
+	// Examples: "us-central1", "europe-west4".
+	// Optional for other providers.
+	Location string `json:"location,omitempty"`
 
 	// Timeout is the maximum time in seconds to wait for a response.
 	// Default: 20 seconds if not specified.
