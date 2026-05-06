@@ -10,10 +10,10 @@ import (
 
 // mockProvider implements vision.Provider for testing
 type mockProvider struct {
-	name     string
-	model    string
-	analyze  func(ctx context.Context, image []byte, prompt string) (string, error)
-	compare  func(ctx context.Context, image1 []byte, image2 []byte, prompt string) (string, error)
+	name    string
+	model   string
+	analyze func(ctx context.Context, image []byte, prompt string) (string, error)
+	compare func(ctx context.Context, image1 []byte, image2 []byte, prompt string) (string, error)
 }
 
 func (m *mockProvider) Name() string {
