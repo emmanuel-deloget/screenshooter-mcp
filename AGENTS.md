@@ -2,6 +2,36 @@
 
 MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 
+## Tool Access Policies
+
+The server implements tool access policies via the `access` object in `config.json`.
+
+### Policy Types
+
+| Policy | Effect |
+|--------|--------|
+| `allow` | Tool is always available |
+| `deny` | Tool returns: `access to tool "..." is denied` |
+| `ask` | Tool returns: `access to tool "..." requires user permission; call 'allow_tool_access' to grant temporary access` |
+
+### Default Behavior
+
+- Tools `list_monitors`, `list_vision_providers`, `get_skill_info_for_agent`, `list_tool_access`, `allow_tool_access` are **always allowed** (exempt from policies)
+- All other tools **default to "ask"** if not specified in config
+
+### Configuration
+
+```json
+{
+  "access": {
+    "capture_screen": "deny",
+    "capture_window": "ask",
+    "capture_region": "allow"
+  },
+  "temp_access_duration": 300
+}
+```
+
 ## WARNING: IMPORTANT NOTICE
 
 ### Git-Worker Requirements

@@ -31,6 +31,8 @@ MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 ### Agent Tools
 
 - **get_skill_info_for_agent** - Return agent skill documentation with tool descriptions and workflow examples
+- **list_tool_access** - List all tools with their current access status (allow, deny, ask)
+- **allow_tool_access** - Grant temporary access to a restricted tool
 
 ## Installation
 
@@ -111,13 +113,14 @@ Config file locations (in priority order):
 2. `/etc/screenshooter-mcp/config.json` (system default)
 
 Options:
-
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `log_level` | string | `"info"` | Log level: debug, info, warn, error |
 | `color` | string | `"auto"` | Color output: always, never, auto |
 | `listen` | string | `""` | HTTP listen address or empty for stdio |
 | `vision` | object | `null` | AI vision providers configuration |
+| `access` | object | `{}` | Tool access policies (tool name → "allow", "deny", "ask") |
+| `temp_access_duration` | int | `300` | Default duration in seconds for temporary access grants |
 
 ### CLI Options
 
@@ -145,7 +148,8 @@ Default config:
 {
   "log_level": "info",
   "color": "auto",
-  "listen": ""
+  "listen": "",
+  "temp_access_duration": 300
 }
 ```
 
@@ -261,6 +265,45 @@ Example:
 
 Return the agent skill documentation. This tool provides a comprehensive guide
 to all available tools, workflow examples, and pipeline usage patterns.
+
+## Tool Access Policies
+
+Control which tools are available using the `access` object in `config.json`.
+Each tool can be set to `"allow"`, `"deny"`, or `"ask"`.
+
+**Default behavior:**
+- `list_monitors`, `list_vision_providers`, `get_skill_info_for_agent`, `list_tool_access`, `allow_tool_access` are always allowed
+- All other tools default to `"ask"` if not specified
+
+**Policy effects:**
+- `"allow"`: Tool is always available
+- `"deny"`: Tool returns an error: `access to tool "..." is denied`
+- `"ask"`: Tool returns an error: `access to tool "..." requires user permission; call 'allow_tool_access' to grant temporary access`
+
+**Example config:**
+```json
+{
+  "access": {
+    "capture_screen": "deny",
+    "capture_window": "ask",
+    "capture_region": "allow"
+  },
+  "temp_access_duration": 300
+}
+```
+
+### list_tool_access
+
+List all tools with their current access status (`allow`, `deny`, `ask`).
+
+### allow_tool_access
+
+Grant temporary access to a tool that has `"ask"` policy.
+Access is granted for a limited time (default: 300 seconds, configurable via `temp_access_duration` in config).
+
+Arguments:
+- `tool`: Tool name to grant access to
+- `duration` (optional): Duration in seconds (defaults to `temp_access_duration`)
 
 ## Vision Providers
 

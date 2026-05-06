@@ -1,5 +1,4 @@
-// Package main provides utility functions for the screenshooter-mcp-server.
-package main
+package utils
 
 import (
 	"encoding/json"
