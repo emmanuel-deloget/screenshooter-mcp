@@ -85,6 +85,14 @@ func (am *AccessManager) GrantTemporary(tool string, duration time.Duration) {
 	am.mu.Unlock()
 }
 
+// IsToolRegistered returns true if the tool has been registered with the access manager.
+func (am *AccessManager) IsToolRegistered(tool string) bool {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	_, ok := am.tools[tool]
+	return ok
+}
+
 // ListAccess returns all tools with their effective access status.
 func (am *AccessManager) ListAccess() map[string]string {
 	am.mu.Lock()
