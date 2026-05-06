@@ -305,6 +305,21 @@ Configure AI vision providers in your config file to enable image analysis:
         "model": "nvidia/neva-22b",
         "api_key": "nvapi-...",
         "timeout": 30
+      },
+      {
+        "name": "gemini",
+        "type": "gemini",
+        "model": "gemini-2.5-flash",
+        "api_key": "AIza-...",
+        "timeout": 30
+      },
+      {
+        "name": "gemini-vertex",
+        "type": "gemini",
+        "model": "gemini-2.5-flash",
+        "project": "my-gcp-project",
+        "location": "us-central1",
+        "timeout": 30
       }
     ]
   }
@@ -315,6 +330,20 @@ Provider types:
 - `openai-compatible`: Works with OpenAI, Ollama, Mistral, Groq, NVIDIA NIM, and any OpenAI-compatible API
 - `anthropic`: Anthropic Claude API
 - `huggingface`: HuggingFace Inference API
+- `gemini`: Google Gemini API or Vertex AI
+
+### Google Gemini
+
+The `gemini` provider supports two modes:
+
+**Gemini API mode** (direct API access):
+- Requires `api_key` (get one at [ai.google.dev](https://ai.google.dev/gemini-api/docs/api-key))
+- Use model names like `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-pro`
+
+**Vertex AI mode** (GCP):
+- Requires `project` and `location` (e.g., `us-central1`, `europe-west4`)
+- Uses Application Default Credentials for authentication, or set `api_key` for Vertex AI express mode
+- Supports all Gemini models available on Vertex AI, plus third-party models like `meta/llama-3.2-90b-vision-instruct`
 
 The first provider in the list is used by default. Specify `provider` in tool calls to use a different one. Timeout is in seconds (default: 20).
 
