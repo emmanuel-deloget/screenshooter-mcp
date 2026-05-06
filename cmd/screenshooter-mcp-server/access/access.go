@@ -93,6 +93,17 @@ func (am *AccessManager) IsToolRegistered(tool string) bool {
 	return ok
 }
 
+// ListTools returns all registered tool names.
+func (am *AccessManager) ListTools() []string {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	tools := make([]string, 0, len(am.tools))
+	for name := range am.tools {
+		tools = append(tools, name)
+	}
+	return tools
+}
+
 // ListAccess returns all tools with their effective access status.
 func (am *AccessManager) ListAccess() map[string]string {
 	am.mu.Lock()

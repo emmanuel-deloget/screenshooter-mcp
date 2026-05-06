@@ -382,8 +382,6 @@ func runHttpBridge(opts *Options, cfg *config.Config) error {
 // The function logs at info level the names of all registered tools for
 // verification purposes.
 func registerTools(server *mcp.Server, t *tools.Tools, am *access.AccessManager) {
-	toolNames := []string{}
-
 	checkAccess := func(tool string) *mcp.CallToolResult {
 		return utils.CheckAccess(tool, am)
 	}
@@ -395,100 +393,86 @@ func registerTools(server *mcp.Server, t *tools.Tools, am *access.AccessManager)
 		Description: "List all available monitors with their names and aliases",
 	}, mcptools.ListMonitors(t))
 	am.RegisterTool("list_monitors", true)
-	toolNames = append(toolNames, "list_monitors")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_vision_providers",
 		Description: "List all configured AI vision providers",
 	}, mcptools.ListVisionProvides(t))
 	am.RegisterTool("list_vision_providers", true)
-	toolNames = append(toolNames, "list_vision_providers")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_skill_info_for_agent",
 		Description: "Return the agent skill documentation for using this MCP server. Provides tool descriptions, workflow examples, and pipeline usage guidance.",
 	}, mcptools.GetSkillInfoForAgent(t))
 	am.RegisterTool("get_skill_info_for_agent", true)
-	toolNames = append(toolNames, "get_skill_info_for_agent")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_tool_access",
 		Description: "List all tools with their current access status (allow, deny, ask).",
 	}, mcptools.ListToolAccess(am))
 	am.RegisterTool("list_tool_access", true)
-	toolNames = append(toolNames, "list_tool_access")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "allow_tool_access",
 		Description: "Grant temporary access to a tool that has 'ask' policy. Access is granted for a limited time.",
 	}, mcptools.AllowToolAccess(am))
 	am.RegisterTool("allow_tool_access", true)
-	toolNames = append(toolNames, "allow_tool_access")
 
-	// --- Access-controlled tools ---}
+	// --- Access-controlled tools ---
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_windows",
 		Description: "List all open windows with their titles and IDs",
 	}, mcptools.ListWindows(checkAccess, t))
 	am.RegisterTool("list_windows", false)
-	toolNames = append(toolNames, "list_windows")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "capture_screen",
 		Description: "Capture the full screen or a specific monitor",
 	}, mcptools.CaptureScreen(checkAccess, t))
 	am.RegisterTool("capture_screen", false)
-	toolNames = append(toolNames, "capture_screen")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "capture_window",
 		Description: "Capture a specific window by its title (partial match supported)",
 	}, mcptools.CaptureWindow(checkAccess, t))
 	am.RegisterTool("capture_window", false)
-	toolNames = append(toolNames, "capture_window")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "capture_region",
 		Description: "Capture a region from the virtual screen",
 	}, mcptools.CaptureRegion(checkAccess, t))
 	am.RegisterTool("capture_region", false)
-	toolNames = append(toolNames, "capture_region")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "analyze_image",
 		Description: "Analyze an image using AI vision providers",
 	}, mcptools.AnalyzeImage(checkAccess, t))
 	am.RegisterTool("analyze_image", false)
-	toolNames = append(toolNames, "analyze_image")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "extract_text",
 		Description: "Extract text from an image as formatted markdown",
 	}, mcptools.ExtractText(checkAccess, t))
 	am.RegisterTool("extract_text", false)
-	toolNames = append(toolNames, "extract_text")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "find_region",
 		Description: "Find bounding box coordinates of a described element in an image",
 	}, mcptools.FindRegion(checkAccess, t))
 	am.RegisterTool("find_region", false)
-	toolNames = append(toolNames, "find_region")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "compare_images",
 		Description: "Compare two images and describe the differences",
 	}, mcptools.CompareImages(checkAccess, t))
 	am.RegisterTool("compare_images", false)
-	toolNames = append(toolNames, "compare_images")
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "execute_capture_pipeline",
 		Description: "Execute a pipeline of capture and vision operations. Each step's output is pushed onto a stack for use by subsequent steps. Returns the final result.",
 	}, mcptools.ExecuteCapturePipeline(checkAccess, t))
 	am.RegisterTool("execute_capture_pipeline", false)
-	toolNames = append(toolNames, "execute_capture_pipeline")
 
-	logging.Info().Strs("tools", toolNames).Msg("Tools registered")
+	logging.Info().Strs("tools", am.ListTools()).Msg("Tools registered")
 }
