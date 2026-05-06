@@ -66,7 +66,7 @@ func (p *huggingFaceProvider) Analyze(ctx context.Context, image []byte, prompt 
 
 	body := map[string]interface{}{
 		"inputs": map[string]interface{}{
-			"image": "data:image/png;base64," + base64Image,
+			"image":  "data:image/png;base64," + base64Image,
 			"prompt": prompt,
 		},
 	}

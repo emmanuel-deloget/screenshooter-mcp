@@ -182,10 +182,10 @@ func TestCompareImages(t *testing.T) {
 
 func TestListMonitors(t *testing.T) {
 	tests := []struct {
-		name     string
-		mock     *mockCapture
-		wantLen  int
-		wantErr  bool
+		name    string
+		mock    *mockCapture
+		wantLen int
+		wantErr bool
 	}{
 		{
 			name: "success with monitors",
@@ -233,10 +233,10 @@ func TestListMonitors(t *testing.T) {
 
 func TestListWindows(t *testing.T) {
 	tests := []struct {
-		name     string
-		mock     *mockCapture
-		wantLen  int
-		wantErr  bool
+		name    string
+		mock    *mockCapture
+		wantLen int
+		wantErr bool
 	}{
 		{
 			name: "success with windows",
@@ -286,10 +286,10 @@ func TestCaptureScreen(t *testing.T) {
 	img := createTestImage(100, 100)
 
 	tests := []struct {
-		name     string
-		monitor  string
-		mock     *mockCapture
-		wantErr  bool
+		name    string
+		monitor string
+		mock    *mockCapture
+		wantErr bool
 	}{
 		{
 			name:    "capture specific monitor",
@@ -357,9 +357,9 @@ func TestCaptureWindow(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:  "window not found",
-			title: "Nonexistent",
-			mock:  &mockCapture{},
+			name:    "window not found",
+			title:   "Nonexistent",
+			mock:    &mockCapture{},
 			wantErr: true,
 		},
 		{

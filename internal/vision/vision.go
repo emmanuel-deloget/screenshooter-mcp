@@ -244,6 +244,8 @@ func newProvider(cfg config.VisionProviderConfig) (Provider, error) {
 		return newAnthropicProvider(cfg)
 	case "huggingface":
 		return newHuggingFaceProvider(cfg)
+	case "gemini":
+		return newGeminiProvider(cfg)
 	default:
 		return nil, fmt.Errorf("unknown provider type: %q", cfg.Type)
 	}

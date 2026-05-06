@@ -8,9 +8,9 @@ import (
 
 func TestBoundingBoxIsValid(t *testing.T) {
 	tests := []struct {
-		name   string
-		bbox   BoundingBox
-		want   bool
+		name string
+		bbox BoundingBox
+		want bool
 	}{
 		{
 			name: "valid box",
@@ -60,9 +60,9 @@ func TestBoundingBoxIsValid(t *testing.T) {
 
 func TestBoundingBoxWidth(t *testing.T) {
 	tests := []struct {
-		name   string
-		bbox   BoundingBox
-		want   int
+		name string
+		bbox BoundingBox
+		want int
 	}{
 		{
 			name: "normal box",
@@ -87,9 +87,9 @@ func TestBoundingBoxWidth(t *testing.T) {
 
 func TestBoundingBoxHeight(t *testing.T) {
 	tests := []struct {
-		name   string
-		bbox   BoundingBox
-		want   int
+		name string
+		bbox BoundingBox
+		want int
 	}{
 		{
 			name: "normal box",
@@ -131,32 +131,32 @@ func TestCropToBoundingBox(t *testing.T) {
 		{
 			name:  "crop normal region",
 			bbox:  &BoundingBox{X1: 10, Y1: 10, X2: 50, Y2: 50},
-			wantW:  40,
-			wantH:  40,
+			wantW: 40,
+			wantH: 40,
 		},
 		{
 			name:  "crop region at origin",
 			bbox:  &BoundingBox{X1: 0, Y1: 0, X2: 50, Y2: 50},
-			wantW:  50,
-			wantH:  50,
+			wantW: 50,
+			wantH: 50,
 		},
 		{
 			name:  "bbox starts before image bounds",
 			bbox:  &BoundingBox{X1: -10, Y1: -10, X2: 50, Y2: 50},
-			wantW:  100,
-			wantH:  100,
+			wantW: 100,
+			wantH: 100,
 		},
 		{
 			name:  "crop extends beyond image bounds",
 			bbox:  &BoundingBox{X1: 50, Y1: 50, X2: 150, Y2: 150},
-			wantW:  50,
-			wantH:  50,
+			wantW: 50,
+			wantH: 50,
 		},
 		{
 			name:  "crop completely outside",
 			bbox:  &BoundingBox{X1: 200, Y1: 200, X2: 300, Y2: 300},
-			wantW:  0,
-			wantH:  0,
+			wantW: 0,
+			wantH: 0,
 		},
 	}
 
@@ -180,7 +180,7 @@ func TestElement(t *testing.T) {
 			X1: 10, Y1: 20, X2: 110, Y2: 120,
 		},
 		Description: "Submit button",
-		Confidence:   0.95,
+		Confidence:  0.95,
 	}
 
 	if elem.BoundingBox.X1 != 10 {
