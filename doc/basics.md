@@ -47,7 +47,8 @@ screenshooter-mcp/
 │       ├── vision.go               # Manager + Provider interface
 │       ├── openai.go               # OpenAI-compatible provider
 │       ├── anthropic.go            # Anthropic Claude provider
-│       └── huggingface.go          # HuggingFace Inference API provider
+│       ├── huggingface.go          # HuggingFace Inference API provider
+│       └── gemini.go               # Google Gemini / Vertex AI provider
 ├── gnome-extension/                # GNOME Shell extension (D-Bus window management)
 │   ├── screenshooter-mcp@deloget.com_legacy/   # GNOME 43/44
 │   └── screenshooter-mcp@deloget.com_modern/   # GNOME 45+
@@ -80,6 +81,7 @@ screenshooter-mcp/
 │                   │             │  │   openai      │ │
 │                   │             │  │   anthropic   │ │
 │                   │             │  │   huggingface │ │
+│                   │             │  │   gemini      │ │
 │                   └─────────────┘  └───────────────┘ │
 └──────────────────────────────────────────────────────┘
 ```
