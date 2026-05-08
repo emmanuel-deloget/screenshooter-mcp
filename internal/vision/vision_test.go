@@ -69,7 +69,6 @@ func TestManagerGetAndDefault(t *testing.T) {
 			"second": &mockProvider{name: "second", model: "model-b"},
 		},
 	}
-	m.defaultProvider = m.providers[0]
 
 	if m.Default().Name() != "first" {
 		t.Errorf("expected default provider 'first', got '%s'", m.Default().Name())
@@ -99,7 +98,6 @@ func TestManagerProviders(t *testing.T) {
 			"second": &mockProvider{name: "second", model: "model-b"},
 		},
 	}
-	m.defaultProvider = m.providers[0]
 
 	infos := m.Providers()
 	if len(infos) != 2 {
@@ -130,9 +128,8 @@ func TestManagerAnalyze(t *testing.T) {
 			}},
 		},
 	}
-	m.defaultProvider = m.providers[0]
 
-	result, err := m.Analyze(context.Background(), []byte("image"), "prompt")
+	result, err := m.AnalyzeWith(context.Background(), "", []byte("image"), "prompt")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -160,9 +157,8 @@ func TestManagerAnalyzeWith(t *testing.T) {
 			}},
 		},
 	}
-	m.defaultProvider = m.providers[0]
 
-	result, err := m.AnalyzeWith(context.Background(), "second", []byte("image"), "prompt")
+	result, err := m.analyzeWith(context.Background(), "second", []byte("image"), "prompt")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -170,7 +166,7 @@ func TestManagerAnalyzeWith(t *testing.T) {
 		t.Errorf("expected 'second-response', got '%s'", result)
 	}
 
-	_, err = m.AnalyzeWith(context.Background(), "nonexistent", []byte("image"), "prompt")
+	_, err = m.analyzeWith(context.Background(), "nonexistent", []byte("image"), "prompt")
 	if err == nil {
 		t.Fatal("expected error for nonexistent provider")
 	}
@@ -189,12 +185,7 @@ func TestNilManagerMethods(t *testing.T) {
 		t.Error("expected nil from nil manager Providers()")
 	}
 
-	_, err := m.Analyze(context.Background(), []byte("image"), "prompt")
-	if err == nil {
-		t.Fatal("expected error from nil manager Analyze()")
-	}
-
-	_, err = m.AnalyzeWith(context.Background(), "test", []byte("image"), "prompt")
+	_, err := m.AnalyzeWith(context.Background(), "test", []byte("image"), "prompt")
 	if err == nil {
 		t.Fatal("expected error from nil manager AnalyzeWith()")
 	}
