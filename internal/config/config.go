@@ -117,6 +117,11 @@ type VisionConfig struct {
 	// Providers is the list of configured vision providers.
 	// The first provider is the default.
 	Providers []VisionProviderConfig `json:"providers"`
+
+	// EnableFallback enables automatic fallback to the next provider
+	// when the current provider fails or times out.
+	// Default: false
+	EnableFallback bool `json:"enable_fallback,omitempty"`
 }
 
 // VisionProviderConfig configures a single vision provider.

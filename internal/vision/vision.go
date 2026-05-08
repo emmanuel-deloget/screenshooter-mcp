@@ -77,6 +77,7 @@ type Manager struct {
 	providers       []Provider
 	defaultProvider Provider
 	providerMap     map[string]Provider
+	enableFallback  bool
 }
 
 // NewManager creates a Manager from configuration.
