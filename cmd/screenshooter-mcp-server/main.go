@@ -93,19 +93,19 @@ import (
 // The --stdio flag is a convenience flag that forces stdio mode, equivalent
 // to setting --listen to "stdio". It overrides any --listen value.
 type Options struct {
-	Version            bool   `short:"v" long:"version" description:"Show version"`
-	Help               bool   `short:"h" long:"help" description:"Show help"`
-	Config             string `long:"config" description:"Path to config file"`
-	LogLevel           string `short:"l" long:"log-level" description:"Log level" default:"info"`
-	LogFormat          string `long:"log-format" description:"Log format: text|json" default:"text"`
-	Color              string `long:"color" description:"Color output: always|never|auto" default:"auto"`
-	Listen             string `long:"listen" description:"Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio' for stdio mode" default:""`
-	Stdio              bool   `long:"stdio" description:"Run in stdio mode (overrides --listen)"`
-	EnableVisionFallback bool `long:"enable-vision-fallback" description:"Enable automatic fallback to next vision provider on error or timeout"`
+	Version              bool   `short:"v" long:"version" description:"Show version"`
+	Help                 bool   `short:"h" long:"help" description:"Show help"`
+	Config               string `long:"config" description:"Path to config file"`
+	LogLevel             string `short:"l" long:"log-level" description:"Log level" default:"info"`
+	LogFormat            string `long:"log-format" description:"Log format: text|json" default:"text"`
+	Color                string `long:"color" description:"Color output: always|never|auto" default:"auto"`
+	Listen               string `long:"listen" description:"Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio' for stdio mode" default:""`
+	Stdio                bool   `long:"stdio" description:"Run in stdio mode (overrides --listen)"`
+	EnableVisionFallback bool   `long:"enable-vision-fallback" description:"Enable automatic fallback to next vision provider on error or timeout"`
 }
 
 const (
-	ScreenshooterMCPVersion = "v1.0.0"
+	ScreenshooterMCPVersion = "v1.1.0"
 )
 
 func main() {
