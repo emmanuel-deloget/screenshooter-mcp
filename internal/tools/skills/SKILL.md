@@ -135,6 +135,10 @@ Each pipeline is an array of steps. Each step has:
 - Use `list_vision_providers` to see available providers.
 - Small local models (llava, moondream) may struggle with `find_region`. Use larger models for coordinate tasks.
 
+### Fallback
+
+When `enable_fallback` is set to `true` in `config.vision` (or `--enable-vision-fallback` is passed on the command line), the server automatically tries the next configured provider if the current one fails or times out. Providers are tried in configuration order until one succeeds. This is transparent to the caller — no special parameter is needed.
+
 ## Security Notes
 
 - This MCP is **read-only**: it captures screens and analyzes images.

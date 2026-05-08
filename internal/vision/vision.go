@@ -74,9 +74,9 @@ type ProviderInfo struct {
 // Manager holds a list of providers and provides methods to select
 // and use them. The first provider in the list is the default.
 type Manager struct {
-	providers       []Provider
-	defaultProvider Provider
-	providerMap     map[string]Provider
+	providers      []Provider
+	providerMap    map[string]Provider
+	enableFallback bool
 }
 
 // NewManager creates a Manager from configuration.
@@ -95,7 +95,8 @@ func NewManager(cfg *config.VisionConfig) (*Manager, error) {
 	logging.Info().Int("count", len(cfg.Providers)).Msg("Initializing vision providers")
 
 	m := &Manager{
-		providerMap: make(map[string]Provider),
+		providerMap:    make(map[string]Provider),
+		enableFallback: cfg.EnableFallback,
 	}
 
 	for _, pc := range cfg.Providers {
@@ -115,8 +116,7 @@ func NewManager(cfg *config.VisionConfig) (*Manager, error) {
 		logging.Info().Str("provider", pc.Name).Str("type", pc.Type).Str("model", pc.Model).Msg("Provider initialized")
 	}
 
-	m.defaultProvider = m.providers[0]
-	logging.Info().Str("default", m.defaultProvider.Name()).Msg("Default vision provider set")
+	logging.Info().Str("default", m.providers[0].Name()).Msg("Default vision provider set")
 	return m, nil
 }
 
@@ -124,10 +124,10 @@ func NewManager(cfg *config.VisionConfig) (*Manager, error) {
 //
 // Returns nil if no providers are configured.
 func (m *Manager) Default() Provider {
-	if m == nil {
+	if m == nil || len(m.providers) == 0 {
 		return nil
 	}
-	return m.defaultProvider
+	return m.providers[0]
 }
 
 // Get returns a provider by name.
@@ -135,11 +135,11 @@ func (m *Manager) Default() Provider {
 // If name is empty, returns the default provider.
 // Returns nil if the provider is not found or no providers are configured.
 func (m *Manager) Get(name string) Provider {
-	if m == nil {
+	if m == nil || len(m.providers) == 0 {
 		return nil
 	}
 	if name == "" {
-		return m.defaultProvider
+		return m.providers[0]
 	}
 	return m.providerMap[name]
 }
@@ -151,10 +151,10 @@ func (m *Manager) Providers() []ProviderInfo {
 	}
 
 	result := make([]ProviderInfo, 0, len(m.providers))
-	for _, p := range m.providers {
+	for n, p := range m.providers {
 		info := ProviderInfo{
 			Name:      p.Name(),
-			IsDefault: p == m.defaultProvider,
+			IsDefault: n == 0,
 		}
 		if mp, ok := p.(interface{ ModelName() string }); ok {
 			info.Model = mp.ModelName()
@@ -164,25 +164,10 @@ func (m *Manager) Providers() []ProviderInfo {
 	return result
 }
 
-// Analyze uses the default provider to analyze an image.
+// analyzeWith uses a named provider to analyze an image.
 //
 // Returns an error if no providers are configured.
-func (m *Manager) Analyze(ctx context.Context, image []byte, prompt string) (string, error) {
-	if m == nil || m.defaultProvider == nil {
-		return "", fmt.Errorf("no vision providers configured")
-	}
-	return m.defaultProvider.Analyze(ctx, image, prompt)
-}
-
-// AnalyzeWith uses a specific provider to analyze an image.
-//
-// If name is empty, uses the default provider.
-// Returns an error if the provider is not found.
-func (m *Manager) AnalyzeWith(ctx context.Context, name string, image []byte, prompt string) (string, error) {
-	if m == nil {
-		return "", fmt.Errorf("no vision providers configured")
-	}
-
+func (m *Manager) analyzeWith(ctx context.Context, name string, image []byte, prompt string) (string, error) {
 	p := m.Get(name)
 	if p == nil {
 		logging.Error().Str("provider", name).Msg("Provider not found")
@@ -200,16 +185,33 @@ func (m *Manager) AnalyzeWith(ctx context.Context, name string, image []byte, pr
 	return result, nil
 }
 
-// CompareImages uses a specific provider to compare two images.
+// AnalyzeWith uses a specific provider to analyze an image.
 //
 // If name is empty, uses the default provider.
-// Returns an error if the provider does not support image comparison
-// or if the provider is not found.
-func (m *Manager) CompareImages(ctx context.Context, name string, image1 []byte, image2 []byte, prompt string) (string, error) {
+// Returns an error if the provider is not found.
+func (m *Manager) AnalyzeWith(ctx context.Context, name string, image []byte, prompt string) (string, error) {
 	if m == nil {
 		return "", fmt.Errorf("no vision providers configured")
 	}
 
+	if m.enableFallback {
+		for _, p := range m.providers {
+			result, err := m.analyzeWith(ctx, p.Name(), image, prompt)
+			if err == nil {
+				return result, nil
+			}
+		}
+		return "", fmt.Errorf("cannot analyze image, all provider failed")
+	}
+	return m.analyzeWith(ctx, name, image, prompt)
+}
+
+// compareImages uses a named provider to compare two images.
+//
+// If name is empty, uses the default provider.
+// Returns an error if the provider does not support image comparison
+// or if the provider is not found.
+func (m *Manager) compareImages(ctx context.Context, name string, image1 []byte, image2 []byte, prompt string) (string, error) {
 	p := m.Get(name)
 	if p == nil {
 		logging.Error().Str("provider", name).Msg("Provider not found")
@@ -230,6 +232,28 @@ func (m *Manager) CompareImages(ctx context.Context, name string, image1 []byte,
 
 	logging.Debug().Str("provider", p.Name()).Int("response_size", len(result)).Msg("Provider image comparison complete")
 	return result, nil
+}
+
+// CompareImages uses a specific provider to compare two images.
+//
+// If name is empty, uses the default provider.
+// Returns an error if the provider does not support image comparison
+// or if the provider is not found.
+func (m *Manager) CompareImages(ctx context.Context, name string, image1 []byte, image2 []byte, prompt string) (string, error) {
+	if m == nil {
+		return "", fmt.Errorf("no vision providers configured")
+	}
+
+	if m.enableFallback {
+		for _, p := range m.providers {
+			result, err := m.compareImages(ctx, p.Name(), image1, image2, prompt)
+			if err == nil {
+				return result, nil
+			}
+		}
+		return "", fmt.Errorf("cannot compare images, all provider failed")
+	}
+	return m.compareImages(ctx, name, image1, image2, prompt)
 }
 
 // newProvider creates a Provider from configuration.
