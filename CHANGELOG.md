@@ -1,5 +1,75 @@
 # Changelog
 
+## ScreenshooterMCP v1.1.0
+
+### What's Inside
+
+#### Vision Provider Fallback
+
+When your primary AI vision provider is unavailable — a local Ollama instance that isn't running, or a cloud API when the network is down — ScreenshooterMCP now automatically falls back to the next configured provider. Enable it with `enable_fallback: true` in your config or `--enable-vision-fallback` on the command line. Providers are tried in configuration order until one succeeds, completely transparent to the caller.
+
+#### Tool Access Control
+
+Fine-grained control over which tools are available. Configure each tool with `"allow"`, `"deny"`, or `"ask"` policies in `config.json`. Tools with `"ask"` policy require explicit user authorization via `allow_tool_access`, which grants temporary access with a configurable expiration. 
+
+Two new related tools have been added:
+
+- `list_tool_access` — list the tool access permissions. 
+- `allow_tool_access` — grant temporary permissions to a specific tool.
+
+When it uses a tool which is not allowed by the user, the agents receives an error that tells it to ask for the permission to use this tool. This should help in environments where the agent tried to obtain access to a tool without asking the user first.
+
+#### JSON Logging
+
+Structured JSON log output is now available with `--log-format json` or `"log_format": "json"` in config. Perfect for log aggregation systems and automated log parsing.
+
+#### New Vision Providers
+
+A new native vision provider for Google Gemini API and Vertex AI. Supports both direct API key authentication and GCP Application Default Credentials for Vertex AI, giving you access to Gemini 2.5 Flash and other vision-capable models.
+
+Information about how to set up NVIDIA NIM through the OpenAI-compatible provider has been added to `README.md`.
+
+#### Code Refactoring
+
+The codebase has been reorganized for better maintainability:
+- **mcptools/** — Each MCP tool now lives in its own file under a dedicated package
+- **access/** — Tool access control is managed by a dedicated `AccessManager`
+- **utils/** — Shared utilities moved to their own package
+
+### Commits
+
+#### v1.1.0
+
+- cmd: bump version number to v1.1.0
+- go: update dependencies (Emmanuel Deloget)
+- doc: add missing information about gemini in basics.md (Emmanuel Deloget)
+- README: add some documentation for option --enable-vision-fallback (Emmanuel Deloget)
+- vision: increase test coverage of vision.go (Emmanuel Deloget)
+- vision: implement 'enable fallback' for image analysis and comparison (Emmanuel Deloget)
+- cmd: the main binary learns option --enable-vision-fallback (Emmanuel Deloget)
+- README: add doc about --log-format / log_format (Emmanuel Deloget)
+- logging: set up JSON logging when --log-format JSON is used (Emmanuel Deloget)
+- cmd: the MCP server learns a new --log-format option (Emmanuel Deloget)
+- config: add a log_format configuration item (Emmanuel Deloget)
+- cmd: remove the list of available tools (redundant information) (Emmanuel Deloget)
+- access: do not construct the list of tools twice (Emmanuel Deloget)
+- doc: fix all relevant doc to explain how access control is used (Emmanuel Deloget)
+- opencode: add the so-called 'Andrej Karpathy' skill (Emmanuel Deloget)
+- cmd: remove unused files (Emmanuel Deloget)
+- cmd: use the tools in mcptools instead of defining them on-line (Emmanuel Deloget)
+- config: add some configuration for tool access (Emmanuel Deloget)
+- mcptools: implement all tools in a new package (Emmanuel Deloget)
+- access: add a helper function to check if a tool has been registered (Emmanuel Deloget)
+- utils: move all utils into a utils package (Emmanuel Deloget)
+- access: implement an access control manager (Emmanuel Deloget)
+- internal: fix some formating issues (Emmanuel Deloget)
+- README: announce that we support Google Gemini as a vision provider (Emmanuel Deloget)
+- vision: wire the Gemini vision provider (Emmanuel Deloget)
+- vision: add some basic tests for the Gemini provider (Emmanuel Deloget)
+- vision: add a new vision provider for Google Gemini (Emmanuel Deloget)
+- go: update dependencies (Emmanuel Deloget)
+- README: tell that we are compatible with NVIDIA NIM (Emmanuel Deloget)
+
 ## ScreenshooterMCP v1.0.0
 
 ### What's Inside
@@ -18,7 +88,7 @@ ScreenshooterMCP automatically detects your display server (X11 or Wayland) and 
 Configure your favorite AI vision providers and let agents understand what they see:
 
 - **analyze_image** — Ask natural language questions about any screenshot
-- **extract_text** — Pull structured markdown text from images (OCR)
+- **extract_text** — Pull structured Markdown text from images (OCR)
 - **find_region** — Locate UI elements by description and get their bounding box coordinates
 - **compare_images** — Spot differences between two screenshots
 - **list_vision_providers** — See which AI providers are configured and ready

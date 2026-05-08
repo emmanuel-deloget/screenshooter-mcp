@@ -126,15 +126,15 @@ Options:
 ### CLI Options
 
 ```
--v, --version                    Show version
--h, --help                       Show help
---config                         Path to config file
--l, --log-level                  Log level: debug|info|warn|error
---log-format                     Log format: text|json
---color                          Color output: always|never|auto
---listen                         Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio'
---stdio                          Force stdio mode (overrides --listen)
---enable-vision-fallback         Enable automatic fallback to next vision provider on error
+  -v, --version                 Show version
+  -h, --help                    Show help
+      --config=                 Path to config file
+  -l, --log-level=              Log level (default: info)
+      --log-format=             Log format: text|json (default: text)
+      --color=                  Color output: always|never|auto (default: auto)
+      --listen=                 Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio' for stdio mode
+      --stdio                   Run in stdio mode (overrides --listen)
+      --enable-vision-fallback  Enable automatic fallback to next vision provider on error or timeout
 ```
 
 
