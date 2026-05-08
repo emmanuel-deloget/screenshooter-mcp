@@ -33,6 +33,7 @@
 //	  },
 //	  "temp_access_duration": 300,
 //	  "vision": {
+//	    "enable_fallback": true,
 //	    "providers": [
 //	      {
 //	        "name": "ollama",

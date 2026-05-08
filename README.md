@@ -126,14 +126,15 @@ Options:
 ### CLI Options
 
 ```
--v, --version           Show version
--h, --help            Show help
---config              Path to config file
--l, --log-level       Log level: debug|info|warn|error
---log-format          Log format: text|json
---color               Color output: always|never|auto
---listen             Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio'
---stdio              Force stdio mode (overrides --listen)
+-v, --version                    Show version
+-h, --help                       Show help
+--config                         Path to config file
+-l, --log-level                  Log level: debug|info|warn|error
+--log-format                     Log format: text|json
+--color                          Color output: always|never|auto
+--listen                         Listen on TCP address (e.g. 127.0.0.1:11777) or 'stdio'
+--stdio                          Force stdio mode (overrides --listen)
+--enable-vision-fallback         Enable automatic fallback to next vision provider on error
 ```
 
 
@@ -315,6 +316,7 @@ Configure AI vision providers in your config file to enable image analysis:
 ```json
 {
   "vision": {
+    "enable_fallback": true,
     "providers": [
       {
         "name": "ollama",
@@ -392,6 +394,40 @@ The `gemini` provider supports two modes:
 - Supports all Gemini models available on Vertex AI, plus third-party models like `meta/llama-3.2-90b-vision-instruct`
 
 The first provider in the list is used by default. Specify `provider` in tool calls to use a different one. Timeout is in seconds (default: 20).
+
+### Vision Provider Fallback
+
+When `enable_fallback` is set to `true` (or `--enable-vision-fallback` is passed on the command line), the server automatically tries the next provider in the list if the current one fails or times out. Providers are tried in configuration order until one succeeds or all have been exhausted.
+
+This is useful when your primary provider is unavailable — for example, a local Ollama instance that isn't running, or a cloud API when the network is down.
+
+```json
+{
+  "vision": {
+    "enable_fallback": true,
+    "providers": [
+      {
+        "name": "ollama",
+        "type": "openai-compatible",
+        "base_url": "http://localhost:11434/v1",
+        "model": "qwen3-vl:2b",
+        "timeout": 30
+      },
+      {
+        "name": "openai",
+        "type": "openai-compatible",
+        "model": "gpt-4o",
+        "api_key": "sk-...",
+        "timeout": 20
+      }
+    ]
+  }
+}
+```
+
+In this example, if the local Ollama provider fails, the server automatically falls back to OpenAI.
+
+For `compare_images`, providers that do not support image comparison are skipped during fallback.
 
 ### Model Limitations
 
