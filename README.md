@@ -38,12 +38,15 @@ MCP server enabling AI agents to take screenshots on Linux (X11 and Wayland).
 
 ### From Packages
 
-Pre-compiled packages for Debian/Ubuntu and Fedora (x86_64 and ARM64):
+Pre-compiled packages for Debian/Ubuntu, Fedora, and Arch Linux (x86_64 and ARM64):
 
 | Distribution  | Package Type | Install |
 |---------------|-------------|---------|
 | Debian/Ubuntu | `.deb` | `dpkg -i screenshooter-mcp-*.deb` |
 | Fedora        | `.rpm` | `dnf install screenshooter-mcp-*.rpm` |
+| Arch Linux    | `.pkg.tar.zst` | `pacman -U screenshooter-mcp-*.pkg.tar.zst` |
+
+> **Note on ARM64 support**: While x86_64 is fully supported across all distributions, ARM64 (aarch64) packages are provided on a best-effort basis. Arch Linux does not officially support aarch64, so ARM64 packages for this distribution are experimental. Contributions are welcome, but no official support will be provided for ARM64 platforms.
 
 ### ⚠️ Security Notice - Automatic Screenshot Authorization
 
