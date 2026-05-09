@@ -33,7 +33,7 @@ cd /output/build
 
 # Prepare PKGBUILD
 sed "s/PKGVER_PLACEHOLDER/${PKGVER}/g" \
-	/project/tests/packaging/scripts/PKGBUILD.in > PKGBUILD
+	/project/scripts/packaging/PKGBUILD-server.in > PKGBUILD
 
 # Copy only needed files
 cp /project/scripts/packaging/arch-server.install .install
