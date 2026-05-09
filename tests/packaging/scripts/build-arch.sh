@@ -12,7 +12,7 @@ echo "Building Arch Linux server package: version=$VERSION arch=$ARCH"
 pacman -Syu --noconfirm base-devel go ca-certificates
 
 _GOARCH=amd64
-if [ ${ARCH} == arm64 ]; then
+if [ ${ARCH} == aarch64 ] ; then
 	_GOARCH=arm64
 fi
 
@@ -32,8 +32,10 @@ mkdir -p /output/build
 cd /output/build
 
 # Prepare PKGBUILD
-sed "s/PKGVER_PLACEHOLDER/${PKGVER}/g" \
+sed "s/PKGVER_PLACEHOLDER/${PKGVER}/g;s/ARCH_PLACEHOLDER/${ARCH}/g" \
 	/project/scripts/packaging/PKGBUILD-server.in > PKGBUILD
+
+cat PKGBUILD | sed 's/^/PKGBUILD > /'
 
 # Copy only needed files
 cp /project/scripts/packaging/arch-server.install .install
@@ -46,7 +48,11 @@ cp /output/screenshooter-mcp .
 # Build package as unprivileged user
 useradd -m builder || true
 chown -R builder:builder .
-su builder -c "makepkg --noconfirm"
+if [ "${ARCH}" = aarch64 ]; then
+	su builder -c "CARCH=aarch64 makepkg --noconfirm --ignorearch"
+else
+	su builder -c "makepkg --noconfirm"
+fi
 
 # Copy result to output
 cp *.pkg.tar.zst /output/ 2>/dev/null || true
