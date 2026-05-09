@@ -419,6 +419,96 @@ jobs:
           name: fedora-${{ matrix.arch }}
           path: "*.rpm"
 
+  build-arch:
+    name: Build Arch Linux
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    needs: version-check
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            goarch: amd64
+          - arch: aarch64
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm base-devel go
+
+      - name: Build binary
+        run: |
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          VERSION="${VERSION#v}"
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -buildvcs=false -trimpath -ldflags="-s -w -X main.version=$VERSION" -o screenshooter-mcp ./cmd/screenshooter-mcp-server
+
+      - name: Build server package
+        run: |
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          PKGVER="${VERSION#v}"
+          PKGVER="${PKGVER//-/.}"
+          ARCH=${{ matrix.arch }}
+
+          mkdir -p build
+          cd build
+
+          sed "s/PKGVER_PLACEHOLDER/${PKGVER}/g;s/ARCH_PLACEHOLDER/${ARCH}/g" \
+            ../scripts/packaging/PKGBUILD-server.in > PKGBUILD
+
+          cp ../scripts/packaging/arch-server.install .install
+          cp ../scripts/packaging/authorize-portal.sh .
+          cp ../scripts/packaging/screenshooter-mcp-server.service .
+          cp ../scripts/packaging/com.deloget.ScreenshooterMCP-server.desktop .
+          cp -r ../gnome-extension .
+          cp ../screenshooter-mcp .
+
+          useradd -m builder || true
+          chown -R builder:builder .
+          if [ "${ARCH}" = "aarch64" ]; then
+            su builder -c "CARCH=aarch64 makepkg --noconfirm --ignorearch"
+          else
+            su builder -c "makepkg --noconfirm"
+          fi
+
+          cp *.pkg.tar.zst ..
+
+      - name: Build stdio package
+        run: |
+          VERSION="${{ github.event.inputs.version || github.event.release.tag_name || 'dev' }}"
+          PKGVER="${VERSION#v}"
+          PKGVER="${PKGVER//-/.}"
+          ARCH=${{ matrix.arch }}
+
+          mkdir -p build-stdio
+          cd build-stdio
+
+          sed "s/PKGVER_PLACEHOLDER/${PKGVER}/g;s/ARCH_PLACEHOLDER/${ARCH}/g" \
+            ../scripts/packaging/PKGBUILD-stdio.in > PKGBUILD
+
+          cp ../scripts/packaging/arch-stdio.install .install
+          cp ../scripts/packaging/authorize-portal.sh .
+          cp ../scripts/packaging/com.deloget.ScreenshooterMCP-stdio.desktop .
+          cp -r ../gnome-extension .
+          cp ../screenshooter-mcp .
+
+          useradd -m builder || true
+          chown -R builder:builder .
+          if [ "${ARCH}" = "aarch64" ]; then
+            su builder -c "CARCH=aarch64 makepkg --noconfirm --ignorearch"
+          else
+            su builder -c "makepkg --noconfirm"
+          fi
+
+          cp *.pkg.tar.zst ..
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-${{ matrix.arch }}
+          path: "*.pkg.tar.zst"
+
   release:
     name: Attach to Release
     runs-on: ubuntu-latest
@@ -427,6 +517,7 @@ jobs:
       - build-static
       - build-debian
       - build-fedora
+      - build-arch
 
     steps:
       - name: Download all artifacts
