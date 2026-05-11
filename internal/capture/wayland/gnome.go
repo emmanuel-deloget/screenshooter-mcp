@@ -20,6 +20,10 @@ type GnomeManager struct {
 	obj  dbus.BusObject
 }
 
+var (
+	errNotImplemented = fmt.Errorf("this feature is not implemented")
+)
+
 func NewGnomeManager() (*GnomeManager, error) {
 	conn, err := dbus.SessionBus()
 	if err != nil {
@@ -84,6 +88,14 @@ func (g *GnomeManager) Move(ctx context.Context, title string, x, y int) error {
 
 func (g *GnomeManager) Resize(ctx context.Context, title string, w, h int) error {
 	return g.obj.CallWithContext(ctx, gnomeExtIface+".Resize", 0, title, int32(w), int32(h)).Err
+}
+
+func (g *GnomeManager) Fullscreen(ctx context.Context, title string) error {
+	return errNotImplemented
+}
+
+func (g *GnomeManager) Unfullscreen(ctx context.Context, title string) error {
+	return errNotImplemented
 }
 
 func (g *GnomeManager) ActiveTitle(ctx context.Context) (string, error) {
