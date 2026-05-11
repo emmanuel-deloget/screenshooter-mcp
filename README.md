@@ -485,6 +485,8 @@ See `tests/integration/README.md` for requirements and supported configurations.
 | Ubuntu 24.04 | KDE / X11 | ✅  |  |
 | Ubuntu 25.10 | GNOME / Wayland | ✅  | ⚠️ Uses `screenshooter-mcp@deloget.com` GNOME extension |
 | Ubuntu 25.10 | KDE / Wayland | ✅  |  |
+| Arch Linux latest | GNOME / Wayland | ✅  | ⚠️ Uses `screenshooter-mcp@deloget.com` GNOME extension |
+| Arch Linux latest | KDE / Wayland | ✅  |  |
 
 ## License
 
