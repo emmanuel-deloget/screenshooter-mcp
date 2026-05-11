@@ -33,6 +33,7 @@ copy_extension_for_user() {
 
 	mkdir -p ${dst}
 	cp -fpR ${src}/* ${dst}/
+	chown -R "${1}:${1}" "${dst}"
 }
 
 show_action=0
