@@ -49,6 +49,12 @@ view_vm() {
 	virt-viewer "${vm}"
 }
 
+console_vm() {
+	local vm="$1"
+	shift
+	virsh console "${vm}"
+}
+
 scp_to_vm() {
 	local vm="$1"
 	local src="$2"
@@ -181,6 +187,14 @@ case "$COMMAND" in
 		fi
 		shift 1
 		view_vm "$VM_NAME"
+		;;
+	console)
+		if [ -z "$VM_NAME" ]; then
+			echo "Usage: $0 console <vm-name>"
+			exit 1
+		fi
+		shift 1
+		console_vm "$VM_NAME"
 		;;
 	scp-to)
 		if [ -z "$VM_NAME" ]; then
