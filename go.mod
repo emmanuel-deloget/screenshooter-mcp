@@ -9,7 +9,7 @@ require (
 	github.com/jezek/xgb v1.3.1
 	github.com/mattn/go-isatty v0.0.22
 	github.com/modelcontextprotocol/go-sdk v1.6.0
-	github.com/nskaggs/perfuncted v0.2.5
+	github.com/nskaggs/perfuncted v0.3.2
 	github.com/rs/zerolog v1.35.1
 	github.com/sashabaranov/go-openai v1.41.2
 	google.golang.org/genai v1.56.0
@@ -37,7 +37,7 @@ require (
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.0-20260508151727-1282bb917829 // indirect
-	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
