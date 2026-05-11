@@ -62,15 +62,18 @@ A recent osinfo-db (2024 or newer) is recommended for proper VM template detecti
 | Distribution | Version | Desktop | Mode | Status |
 |------------|---------|--------|------|--------|
 | Debian     | 12, 13  | GNOME  | Wayland | ✓     |
-| Debian     | 12, 13  | KDE    | X11   | ✓     |
+| Debian     | 12, 13  | GNOME  | X11   | ✓     |
 | Debian     | 12, 13  | KDE    | Wayland | ✓     |
+| Debian     | 12, 13  | KDE    | X11   | ✓     |
 | Ubuntu    | 24.04   | GNOME  | Wayland | ✓     |
+| Ubuntu    | 24.04   | GNOME  | X11   | ✓     |
 | Ubuntu    | 24.04   | KDE    | Wayland | ✓     |
-| Ubuntu    | 26.04   | GNOME  | Wayland | ✓     |
-| Ubuntu    | 26.04   | KDE    | Wayland | ✓     |
+| Ubuntu    | 24.04   | KDE    | X11   | ✓     |
+| Ubuntu    | 25.10   | GNOME  | Wayland | ✓     |
+| Ubuntu    | 25.10   | KDE    | Wayland | ✓     |
 | Fedora    | 43      | GNOME  | Wayland | ✓     |
-| Fedora    | 43      | KDE    | Wayland | ✓     |
 | Fedora    | 43      | GNOME  | X11   | ✗     |
+| Fedora    | 43      | KDE    | Wayland | ✓     |
 | Fedora    | 43      | KDE    | X11   | ✗     |
 
 **Note**: Fedora 43 does not support X11 mode. The tests will reject these combinations.
