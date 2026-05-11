@@ -6,9 +6,10 @@
 #   - debian: 12, 13
 #   - ubuntu: 24.04, 25.10
 #   - fedora: 43
+#   - arch: latest (x86_64 only, wayland only)
 #
 # Supported desktops: gnome, kde
-# Supported modes: x11, wayland
+# Supported modes: x11, wayland (arch: wayland only)
 
 set -e
 
@@ -51,6 +52,7 @@ if [ -z "$DISTRO" ] || [ -z "$VERSION" ] || [ -z "$DESKTOP" ] || [ -z "$MODE" ];
 	echo "  - debian: 12, 13"
 	echo "  - ubuntu: 24.04, 25.10"
 	echo "  - fedora: 43"
+	echo "  - arch: latest (x86_64, wayland only)"
 	echo ""
 	echo "Supported desktops: gnome, kde"
 	echo "Supported modes: x11, wayland"
@@ -62,7 +64,7 @@ if [ -z "$DISTRO" ] || [ -z "$VERSION" ] || [ -z "$DESKTOP" ] || [ -z "$MODE" ];
 fi
 
 case "$DISTRO" in
-	debian|ubuntu|fedora)
+	debian|ubuntu|fedora|arch)
 		;;
 	*)
 		echo "Unsupported distro: $DISTRO"
@@ -93,11 +95,17 @@ case "${DISTRO}-${VERSION}-${DESKTOP}-${MODE}" in
 		echo "Unsupported combination: ${DISTRO}, ${VERSION}, ${DESKTOP}, ${MODE}, ignoring"
 		exit 0
 		;;
+	arch-*-x11)
+		echo "Unsupported combination: ${DISTRO}, ${VERSION}, ${DESKTOP}, ${MODE} (Arch Linux does not support X11 in this test suite)"
+		exit 0
+		;;
 	ubuntu-24.04-*|ubuntu-25.10-*)
 		;;
 	debian-1[23]-*)
 		;;
 	fedora-43-*)
+		;;
+	arch-latest-*)
 		;;
 	*)
 		echo "unsupported configuration of distribution $DISTRO and version $VERSION"
@@ -140,8 +148,13 @@ if [ ! -f "$BASE_IMAGE" ]; then
 	echo "Base image not found: $BASE_IMAGE"
 	echo "Creating base image (this may take a while)..."
 
-	"$LIB_DIR/download-iso.sh" "$DISTRO" "$VERSION" "$DESKTOP"
-	"$LIB_DIR/create-base-image.sh" "$DISTRO" "$VERSION" "$DESKTOP"
+	if [ "$DISTRO" = "arch" ]; then
+		"$LIB_DIR/download-image.sh" "$DISTRO" "$VERSION" "$DESKTOP"
+		"$LIB_DIR/create-arch-base.sh" "$DISTRO" "$VERSION" "$DESKTOP"
+	else
+		"$LIB_DIR/download-iso.sh" "$DISTRO" "$VERSION" "$DESKTOP"
+		"$LIB_DIR/create-base-image.sh" "$DISTRO" "$VERSION" "$DESKTOP"
+	fi
 fi
 echo "  Base image ready: $BASE_IMAGE"
 
