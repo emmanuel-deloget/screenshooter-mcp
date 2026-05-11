@@ -62,18 +62,25 @@ A recent osinfo-db (2024 or newer) is recommended for proper VM template detecti
 | Distribution | Version | Desktop | Mode | Status |
 |------------|---------|--------|------|--------|
 | Debian     | 12, 13  | GNOME  | Wayland | ✓     |
-| Debian     | 12, 13  | KDE    | X11   | ✓     |
+| Debian     | 12, 13  | GNOME  | X11   | ✓     |
 | Debian     | 12, 13  | KDE    | Wayland | ✓     |
+| Debian     | 12, 13  | KDE    | X11   | ✓     |
 | Ubuntu    | 24.04   | GNOME  | Wayland | ✓     |
+| Ubuntu    | 24.04   | GNOME  | X11   | ✓     |
 | Ubuntu    | 24.04   | KDE    | Wayland | ✓     |
-| Ubuntu    | 26.04   | GNOME  | Wayland | ✓     |
-| Ubuntu    | 26.04   | KDE    | Wayland | ✓     |
+| Ubuntu    | 24.04   | KDE    | X11   | ✓     |
+| Ubuntu    | 25.10   | GNOME  | Wayland | ✓     |
+| Ubuntu    | 25.10   | KDE    | Wayland | ✓     |
 | Fedora    | 43      | GNOME  | Wayland | ✓     |
-| Fedora    | 43      | KDE    | Wayland | ✓     |
 | Fedora    | 43      | GNOME  | X11   | ✗     |
+| Fedora    | 43      | KDE    | Wayland | ✓     |
 | Fedora    | 43      | KDE    | X11   | ✗     |
+| Arch Linux | latest  | GNOME  | Wayland | ✓     |
+| Arch Linux | latest  | KDE    | Wayland | ✓     |
 
-**Note**: Fedora 43 does not support X11 mode. The tests will reject these combinations.
+**Note**: Fedora 43 and Arch Linux do not support X11 mode in this test suite. The tests will reject these combinations.
+
+**Note**: Arch Linux uses pre-built cloud images from pkgbuild.com instead of ISO installation. The `aarch64` architecture is not officially supported by Arch Linux, so integration tests are x86_64 only.
 
 ## Wayland Test Status
 
@@ -112,15 +119,25 @@ Base images must be created before running tests:
 
 # Create base image for Ubuntu 24.04 KDE  
 ./lib/create-base-image.sh ubuntu 24.04 kde
+
+# Create base image for Arch Linux GNOME (uses pre-built cloud image)
+./lib/create-arch-base.sh arch latest gnome
 ```
 
-### Downloading ISOs
+### Downloading ISOs/Images
 
 ISOs are downloaded automatically when creating base images. To pre-download:
 
 ```bash
 ./lib/download-iso.sh debian 12 gnome
 ./lib/download-iso.sh ubuntu 24.04 kde
+```
+
+For Arch Linux, pre-built cloud images are downloaded instead:
+
+```bash
+./lib/download-image.sh arch latest gnome
+./lib/download-image.sh arch latest kde
 ```
 
 ## Directory Structure
@@ -134,8 +151,10 @@ tests/integration/
 ├── pkg/           # Downloaded packages
 ├── lib/           # Helper scripts
 │   ├── create-base-image.sh
+│   ├── create-arch-base.sh
 │   ├── provision-vm.sh
 │   ├── download-iso.sh
+│   ├── download-image.sh
 │   ├── download-package.sh
 │   └── ...
 ├── shared/         # Test clients (test-mcp)

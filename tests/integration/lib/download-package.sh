@@ -30,6 +30,9 @@ find_local_package() {
 		fedora)
 			pattern="screenshooter-mcp-server-*.rpm"
 			;;
+		arch)
+			pattern="screenshooter-mcp-server-*.pkg.tar.zst"
+			;;
 		*)
 			echo "Unsupported distro: $distro"
 			return 1
@@ -84,13 +87,24 @@ download_from_github() {
 				return 1
 			fi
 			;;
+		arch)
+			local arch_url
+			arch_url=$(echo "$assets" | grep -E 'screenshooter-mcp-server-[0-9].*x86_64\.pkg\.tar\.zst$' | awk '{print $2}' | head -1)
+			if [ -n "$arch_url" ]; then
+				echo "Downloading $arch_url ..."
+				curl -L -o "${PKG_DIR}/$(basename "$arch_url")" "$arch_url"
+			else
+				echo "No .pkg.tar.zst package found for $tag"
+				return 1
+			fi
+			;;
 	esac
 }
 
 main() {
 	if [ -z "$DISTRO" ]; then
 		echo "Usage: $0 <distro> [version]"
-		echo "  distro: debian, ubuntu, fedora"
+		echo "  distro: debian, ubuntu, fedora, arch"
 		echo "  version: specific version or 'latest' (default)"
 		exit 1
 	fi

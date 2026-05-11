@@ -97,6 +97,9 @@ case "$DISTRO" in
 	fedora)
 		PKG_FILE=$(ls "$PKG_DIR"/screenshooter-mcp-server-*.rpm 2>/dev/null | head -1)
 		;;
+	arch)
+		PKG_FILE=$(ls "$PKG_DIR"/screenshooter-mcp-server-*.pkg.tar.zst 2>/dev/null | head -1)
+		;;
 esac
 
 if [ -z "$PKG_FILE" ]; then
@@ -105,7 +108,17 @@ if [ -z "$PKG_FILE" ]; then
 	exit 1
 fi
 
-copy_to_vm "$PKG_FILE" "/tmp/package.deb"
+case "$DISTRO" in
+	debian|ubuntu)
+		copy_to_vm "$PKG_FILE" "/tmp/package.deb"
+		;;
+	fedora)
+		copy_to_vm "$PKG_FILE" "/tmp/package.deb"
+		;;
+	arch)
+		copy_to_vm "$PKG_FILE" "/tmp/package.pkg.tar.zst"
+		;;
+esac
 echo "  Package: $(basename "$PKG_FILE")"
 
 echo "[5/8] Installing package..."
@@ -118,6 +131,10 @@ case "$DISTRO" in
 	fedora)
 		run_on_vm "sudo rpm -ivh /tmp/package.deb"
 		run_on_vm "rpm -q screenshooter-mcp-server"
+		;;
+	arch)
+		run_on_vm "sudo pacman -U --noconfirm /tmp/package.pkg.tar.zst"
+		run_on_vm "pacman -Q screenshooter-mcp-server"
 		;;
 esac
 echo "  OK"

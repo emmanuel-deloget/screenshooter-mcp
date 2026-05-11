@@ -107,19 +107,26 @@ func main() {
 	var monitors []map[string]any
 	var windows []map[string]any
 
-	if m, err := mcp.listMonitors(ctx); err != nil {
+	// Grant access to tools that require permission
+	for _, tool := range []string{"list_monitors", "list_windows", "capture_screen", "capture_window", "capture_region"} {
+		if err := mcp.allowToolAccess(ctx, tool); err != nil {
+			fmt.Fprintf(os.Stderr, "allow_tool_access(%s) failed: %v\n", tool, err)
+		}
+	}
+
+	if mon, err := mcp.listMonitors(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "list_monitors failed: %v\n", err)
 		allPassed = false
 	} else {
-		monitors = m
+		monitors = mon
 		saveJSON(ctx, outputDir, "list_monitors.json", monitors)
 	}
 
-	if w, err := mcp.listWindows(ctx); err != nil {
+	if win, err := mcp.listWindows(ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "list_windows failed: %v\n", err)
 		allPassed = false
 	} else {
-		windows = w
+		windows = win
 		saveJSON(ctx, outputDir, "list_windows.json", windows)
 	}
 
@@ -333,6 +340,17 @@ func (m *MCPServer) callToolRaw(ctx context.Context, params ToolCallParams) (map
 		ID:      3,
 	}
 	return m.call(ctx, reqBody)
+}
+
+func (m *MCPServer) allowToolAccess(ctx context.Context, tool string) error {
+	params := ToolCallParams{
+		Name: "allow_tool_access",
+		Arguments: mustMarshal(map[string]any{
+			"tool": tool,
+		}),
+	}
+	_, err := m.callToolRaw(ctx, params)
+	return err
 }
 
 func (m *MCPServer) call(ctx context.Context, req JSONRPCRequest) (map[string]any, error) {

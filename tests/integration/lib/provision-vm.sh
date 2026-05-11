@@ -55,7 +55,7 @@ fi
 
 cp "$BASE_IMAGE" "$VM_IMAGE"
 echo "Change the owner of the vm image [requires root]"
-sudo chown "$USER:$USER" "$VM_IMAGE"
+sudo chown "$USER:$USER" "$VM_IMAGE" 2>/dev/null || chown "$USER:$USER" "$VM_IMAGE" 2>/dev/null || true
 chmod 0664 "$VM_IMAGE"
 
 # Ensure disk is bootable - re-read the disk to update permissions
@@ -215,6 +215,24 @@ configure_display_kde_mode_fedora() {
 		--firstboot-command "systemctl disable gdm && systemctl enable sddm && systemctl reboot"
 }
 
+configure_display_gnome_mode_arch() {
+	local disk="$1"
+	local mode="$2"
+	local version="$3"
+
+	# Arch Linux: display config handled by firstboot script in create-arch-base.sh
+	echo "Arch Linux: GNOME display config handled by firstboot"
+}
+
+configure_display_kde_mode_arch() {
+	local disk="$1"
+	local mode="$2"
+	local version="$3"
+
+	# Arch Linux: display config handled by firstboot script in create-arch-base.sh
+	echo "Arch Linux: KDE display config handled by firstboot"
+}
+
 configure_display_mode() {
 	local disk="$1"
 	local mode="$2"
@@ -243,6 +261,12 @@ configure_display_mode() {
 		fedora-kde)
 			configure_display_kde_mode_fedora "${disk}" "${mode}" "${version}"
 			;;
+		arch-gnome)
+			configure_display_gnome_mode_arch "${disk}" "${mode}" "${version}"
+			;;
+		arch-kde)
+			configure_display_kde_mode_arch "${disk}" "${mode}" "${version}"
+			;;
 	esac
 }
 
@@ -257,17 +281,26 @@ case "$DISTRO" in
     fedora)
         EFI_SRC="/boot/efi/EFI/fedora/grubx64.efi"
         ;;
+    arch)
+        EFI_SRC=""
+        ;;
 esac
 
-virt-customize -a "$VM_IMAGE" \
-    --run-command "mkdir -p /boot/efi/EFI/BOOT" \
-    --run-command "cp ${EFI_SRC} /boot/efi/EFI/BOOT/bootx64.efi" \
-		--run-command "sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config || true" \
-    --install sudo \
-		--run-command "echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester" \
-		--run-command "chmod 440 /etc/sudoers.d/tester" \
-		--run-command "mkdir -p /var/lib/systemd/linger" \
-		--run-command "touch /var/lib/systemd/linger/tester"
+if [ -n "$EFI_SRC" ]; then
+    virt-customize -a "$VM_IMAGE" \
+        --run-command "mkdir -p /boot/efi/EFI/BOOT" \
+        --run-command "cp ${EFI_SRC} /boot/efi/EFI/BOOT/bootx64.efi" \
+        --run-command "sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config || true" \
+        --install sudo \
+        --run-command "echo 'tester ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/tester" \
+        --run-command "chmod 440 /etc/sudoers.d/tester" \
+        --run-command "mkdir -p /var/lib/systemd/linger" \
+        --run-command "touch /var/lib/systemd/linger/tester"
+else
+    # Arch Linux: skip virt-customize --run-command (causes mount errors)
+    # All customization is done via firstboot script in create-arch-base.sh
+    echo "Arch Linux: skipping virt-customize (firstboot handles setup)"
+fi
 
 configure_display_mode "$VM_IMAGE" "$MODE" "$DISTRO" "$DESKTOP" "$VERSION"
 
@@ -288,10 +321,16 @@ if ! virsh net-info default &>/dev/null; then
 fi
 
 if ! virsh net-info default | grep -q "Active:.*yes"; then
-	virsh net-start default
+	echo "Starting default network..."
+	if ! virsh net-start default 2>/dev/null; then
+		echo "Warning: Could not start default network. VM will use user-mode networking."
+		USE_USER_NETWORKING=true
+	fi
 fi
 
-virsh net-autostart default
+if [ "$USE_USER_NETWORKING" != "true" ]; then
+	virsh net-autostart default
+fi
 
 # Define and start VM
 echo "Starting VM..."

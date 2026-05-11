@@ -1,0 +1,39 @@
+pkgname=screenshooter-mcp-stdio
+pkgver=PKGVER_PLACEHOLDER
+pkgrel=1
+pkgdesc="Screenshooter MCP (stdio mode)"
+arch=('ARCH_PLACEHOLDER')
+url="https://github.com/emmanuel-deloget/screenshooter-mcp"
+license=('MIT')
+options=('!debug')
+install=.install
+source=("screenshooter-mcp"
+        "authorize-portal.sh"
+        "com.deloget.ScreenshooterMCP-stdio.desktop")
+sha256sums=('SKIP'
+            'SKIP'
+            'SKIP')
+
+package() {
+	# Install binary
+	install -Dm755 "${srcdir}/screenshooter-mcp" \
+		"${pkgdir}/usr/bin/screenshooter-mcp-stdio"
+
+	# Install config
+	install -Dm644 /dev/null "${pkgdir}/etc/screenshooter-mcp/config.json"
+	echo '{"log_level":"info","color":"auto"}' \
+		> "${pkgdir}/etc/screenshooter-mcp/config.json"
+
+	# Install desktop file
+	install -Dm644 "${srcdir}/com.deloget.ScreenshooterMCP-stdio.desktop" \
+		"${pkgdir}/etc/xdg/autostart/com.deloget.ScreenshooterMCP.desktop"
+
+	# Install authorize script
+	install -Dm755 "${srcdir}/authorize-portal.sh" \
+		"${pkgdir}/usr/lib/screenshooter-mcp/authorize-portal.sh"
+
+	# Install GNOME extensions
+	install -d "${pkgdir}/usr/share/screenshooter-mcp/extensions"
+	cp -r "${startdir}/gnome-extension/"* \
+		"${pkgdir}/usr/share/screenshooter-mcp/extensions/"
+}
