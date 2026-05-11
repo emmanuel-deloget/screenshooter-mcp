@@ -1,5 +1,41 @@
 # Changelog
 
+## ScreenshooterMCP v1.2.0 (unreleased)
+
+### What's Inside
+
+#### Arch Linux Packaging
+
+Full support for Arch Linux packages (`.pkg.tar.zst`) for both server and stdio variants. Packages include proper systemd user service integration, GNOME Shell extension deployment with version-aware installation (legacy for GNOME 43-44, modern for GNOME 45+), and correct file ownership handling. Both x86_64 and aarch64 architectures are supported, though aarch64 packages are experimental since Arch Linux does not officially support ARM64.
+
+#### Integration Testing
+
+Arch Linux integration tests now run on GNOME and KDE desktop environments (Wayland-only). The test infrastructure uses pre-built cloud images from pkgbuild.com instead of ISO-based installation for faster VM provisioning. The test client (`test-mcp`) now properly authorizes tools before use, reflecting the tool access control policies introduced in v1.1.0.
+
+#### Minor Fixes
+
+- Fixed GNOME extension directory ownership in Debian and Fedora postinst scripts
+- Added `console` command to `vm-lifecycle.sh` for interactive VM access
+- Updated integration test documentation with Arch Linux configurations
+
+### Commits
+
+#### v1.2.0-rc0
+
+- cmd: bump version number to v1.2.0-rc0
+- go: update dependencies (Emmanuel Deloget)
+- README: announce that tests on Arch Linux are successfull (Emmanuel Deloget)
+- tests: add integration tests on Arch Linux (gnome+KDE, wayland only) (Emmanuel Deloget)
+- packaging: make sure the user extension is installed using the right owner (Emmanuel Deloget)
+- tests: update the integration README to re-order the various configurations (Emmanuel Deloget)
+- tests: vm-lifecycle.sh learns command 'console' to start an interactive console in the VM (Emmanuel Deloget)
+- tests: test-mcp shall authorize tools before it uses it (Emmanuel Deloget)
+- README: announce support for Arch Linux packages (Emmanuel Deloget)
+- workflow: add a build for Arch Linux (x86_64 and aarch64) (Emmanuel Deloget)
+- tests: fix the building of the Arch package for arm64 (Emmanuel Deloget)
+- tests: move the PKGBUILD.in file to its correct place (Emmanuel Deloget)
+- tests: build a valid -arch package (Emmanuel Deloget)
+
 ## ScreenshooterMCP v1.1.0
 
 ### What's Inside
