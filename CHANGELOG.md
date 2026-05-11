@@ -1,6 +1,6 @@
 # Changelog
 
-## ScreenshooterMCP v1.2.0 (unreleased)
+## ScreenshooterMCP v1.2.0
 
 ### What's Inside
 
@@ -19,6 +19,10 @@ Arch Linux integration tests now run on GNOME and KDE desktop environments (Wayl
 - Updated integration test documentation with Arch Linux configurations
 
 ### Commits
+
+#### v1.2.0
+
+- cmd: bump version number to 1.2.0 (Emmanuel Deloget)
 
 #### v1.2.0-rc0
 
