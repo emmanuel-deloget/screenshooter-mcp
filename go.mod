@@ -8,7 +8,7 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jezek/xgb v1.3.1
 	github.com/mattn/go-isatty v0.0.22
-	github.com/modelcontextprotocol/go-sdk v1.6.0
+	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/nskaggs/perfuncted v0.4.0
 	github.com/rs/zerolog v1.35.1
 	github.com/sashabaranov/go-openai v1.41.2
