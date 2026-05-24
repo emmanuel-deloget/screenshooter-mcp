@@ -12,7 +12,7 @@ require (
 	github.com/nskaggs/perfuncted v0.4.0
 	github.com/rs/zerolog v1.35.1
 	github.com/sashabaranov/go-openai v1.41.2
-	google.golang.org/genai v1.57.0
+	google.golang.org/genai v1.58.0
 )
 
 require (
