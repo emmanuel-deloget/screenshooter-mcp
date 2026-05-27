@@ -1,24 +1,30 @@
 # Changelog
 
-## ScreenshooterMCP v1.2.0
+## ScreenshooterMCP v1.2.1
 
 ### What's Inside
 
-#### Arch Linux Packaging
+#### Security Fixes
 
-Full support for Arch Linux packages (`.pkg.tar.zst`) for both server and stdio variants. Packages include proper systemd user service integration, GNOME Shell extension deployment with version-aware installation (legacy for GNOME 43-44, modern for GNOME 45+), and correct file ownership handling. Both x86_64 and aarch64 architectures are supported, though aarch64 packages are experimental since Arch Linux does not officially support ARM64.
+This release is a security release only. It fixes the following 
 
-#### Integration Testing
-
-Arch Linux integration tests now run on GNOME and KDE desktop environments (Wayland-only). The test infrastructure uses pre-built cloud images from pkgbuild.com instead of ISO-based installation for faster VM provisioning. The test client (`test-mcp`) now properly authorizes tools before use, reflecting the tool access control policies introduced in v1.1.0.
-
-#### Minor Fixes
-
-- Fixed GNOME extension directory ownership in Debian and Fedora postinst scripts
-- Added `console` command to `vm-lifecycle.sh` for interactive VM access
-- Updated integration test documentation with Arch Linux configurations
+- [GO-2026-5026](https://pkg.go.dev/vuln/GO-2026-5026) (golang.org/x/net ; fixed in golang.org/x/net@0.55.0)
+- [GO-2026-4982](https://pkg.go.dev/vuln/GO-2026-4982) (net ; fixed in net@1.26.3)
+- [GO-2026-4980](https://pkg.go.dev/vuln/GO-2026-4980) (net ; fixed in net@1.26.3)
+- [GO-2026-4971](https://pkg.go.dev/vuln/GO-2026-4971) (net ; fixed in net@1.26.3)
+- [GO-2026-4918](https://pkg.go.dev/vuln/GO-2026-4918) (net ; fixed in net@1.26.3)
 
 ### Commits
+
+#### v1.2.1
+
+- cmd: bump version number to 1.2.1 (Emmanuel Deloget)
+- doc: update CHANGELOG.md for version v1.2.1 (Emmanuel Deloget)
+- go: update dependencies (Emmanuel Deloget)
+- doc: update SECURITY.md to fix the version number (Emmanuel Deloget)
+- build(deps): bump github.com/anthropics/anthropic-sdk-go (dependabot[bot])
+- build(deps): bump github.com/nskaggs/perfuncted from 0.3.2 to 0.4.0 (dependabot[bot])
+- build(deps): bump google.golang.org/genai from 1.56.0 to 1.57.0 (dependabot[bot])
 
 #### v1.2.0
 
