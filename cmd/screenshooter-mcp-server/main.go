@@ -105,7 +105,7 @@ type Options struct {
 }
 
 const (
-	ScreenshooterMCPVersion = "v1.2.0"
+	ScreenshooterMCPVersion = "v1.2.1"
 )
 
 func main() {
