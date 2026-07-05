@@ -3,7 +3,7 @@ module github.com/emmanuel-deloget/screenshooter-mcp
 go 1.26.3
 
 require (
-	github.com/anthropics/anthropic-sdk-go v1.50.1
+	github.com/anthropics/anthropic-sdk-go v1.56.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jezek/xgb v1.3.1
