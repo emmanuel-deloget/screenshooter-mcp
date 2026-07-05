@@ -57,8 +57,8 @@ github.com/mattn/go-isatty v0.0.22 h1:j8l17JJ9i6VGPUFUYoTUKPSgKe/83EYU2zBC7YNKMw
 github.com/mattn/go-isatty v0.0.22/go.mod h1:ZXfXG4SQHsB/w3ZeOYbR0PrPwLy+n6xiMrJlRFqopa4=
 github.com/modelcontextprotocol/go-sdk v1.6.1 h1:0zOSupjKUxPKSocPT1Wtago+mUHU2/uZ4xSOY0FGReU=
 github.com/modelcontextprotocol/go-sdk v1.6.1/go.mod h1:kzm3kzFL1/+AziGOE0nUs3gvPoNxMCvkxokMkuFapXQ=
-github.com/nskaggs/perfuncted v0.4.4 h1:FX33LMUvZ6HFeplt47EqzH3JHCtBBOCDEd9tviHAHFw=
-github.com/nskaggs/perfuncted v0.4.4/go.mod h1:OgLRTIhbn+HSHQU7Sd6DTmPj75tVu5lIsM+4ITU2slE=
+github.com/nskaggs/perfuncted v0.4.5 h1:ylQ3vgMMkGrgLL0K++OLA8bRt2K1D81pMbZDAQMAH2k=
+github.com/nskaggs/perfuncted v0.4.5/go.mod h1:oSXxNlLHejBOgGpuWTnQz8GJH2K1hkPn8a3LLFpci7s=
 github.com/pb33f/ordered-map/v2 v2.3.1 h1:5319HDO0aw4DA4gzi+zv4FXU9UlSs3xGZ40wcP1nBjY=
 github.com/pb33f/ordered-map/v2 v2.3.1/go.mod h1:qxFQgd0PkVUtOMCkTapqotNgzRhMPL7VvaHKbd1HnmQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
