@@ -11,7 +11,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/nskaggs/perfuncted v0.4.4
 	github.com/rs/zerolog v1.35.1
-	github.com/sashabaranov/go-openai v1.41.2
+	github.com/sashabaranov/go-openai v1.42.0
 	google.golang.org/genai v1.60.0
 )
 
