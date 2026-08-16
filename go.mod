@@ -9,7 +9,7 @@ require (
 	github.com/jezek/xgb v1.3.1
 	github.com/mattn/go-isatty v0.0.22
 	github.com/modelcontextprotocol/go-sdk v1.6.1
-	github.com/nskaggs/perfuncted v0.4.4
+	github.com/nskaggs/perfuncted v1.0.0
 	github.com/rs/zerolog v1.35.1
 	github.com/sashabaranov/go-openai v1.41.2
 	google.golang.org/genai v1.60.0
