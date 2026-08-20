@@ -21,7 +21,7 @@ jobs:
     name: Version Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Check version consistency
         run: |
@@ -62,7 +62,7 @@ jobs:
       - name: Install dependencies
         run: apk add --no-cache git ca-certificates
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -180,7 +180,7 @@ jobs:
           - arch: arm64
             goarch: arm64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -305,7 +305,7 @@ jobs:
           - arch: aarch64
             goarch: arm64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -432,7 +432,7 @@ jobs:
           - arch: aarch64
             goarch: arm64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
