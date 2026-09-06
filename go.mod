@@ -1,6 +1,6 @@
 module github.com/emmanuel-deloget/screenshooter-mcp
 
-go 1.26.3
+go 1.27.0
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.50.1
@@ -9,7 +9,7 @@ require (
 	github.com/jezek/xgb v1.3.1
 	github.com/mattn/go-isatty v0.0.22
 	github.com/modelcontextprotocol/go-sdk v1.6.1
-	github.com/nskaggs/perfuncted v0.4.4
+	github.com/nskaggs/perfuncted v1.1.4
 	github.com/rs/zerolog v1.35.1
 	github.com/sashabaranov/go-openai v1.41.2
 	google.golang.org/genai v1.60.0
