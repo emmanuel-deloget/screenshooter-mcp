@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.50.1
-	github.com/godbus/dbus/v5 v5.2.2
+	github.com/godbus/dbus/v5 v5.2.4
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jezek/xgb v1.3.1
 	github.com/mattn/go-isatty v0.0.22
